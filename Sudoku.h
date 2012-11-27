@@ -15,6 +15,7 @@ namespace BQSudoku {
 		std::size_t m, n;
 		std::size_t size;
 		std::vector<size_t> board;
+		std::vector<bool> given;
 	public:
 		Sudoku(const Sudoku&);
 		Sudoku(Sudoku&&);

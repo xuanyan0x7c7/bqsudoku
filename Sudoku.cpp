@@ -20,13 +20,14 @@ Sudoku::Sudoku(): Sudoku(3, 3) {}
 Sudoku::Sudoku(size_t n): Sudoku(n, n) {}
 
 Sudoku::Sudoku(size_t m, size_t n): m(m), n(n), size(m * n),
-	board(size * size) {}
+	board(size * size), given(size * size) {}
 
 Sudoku::Sudoku(size_t n, const string &str): Sudoku(n, n, str) {}
 
 Sudoku::Sudoku(size_t m, size_t n, const string &str): Sudoku(m, n) {
 	for (size_t i = 0; i < size * size; ++i) {
 		if (str[i] != '.' && str[i] != '0') {
+			given[i] = true;
 			if (isdigit(str[i])) {
 				board[i] = str[i] - '0';
 			} else {
@@ -82,8 +83,15 @@ ostream& operator<<(ostream &ostr, const Sudoku &sudoku) {
 			for (size_t k = 0; k < m; ++k) {
 				ostr << "| ";
 				for (size_t l = 0; l < n; ++l) {
-					ostr << sudoku.Number2Char(sudoku(i * m + j, k * n + l))
-						<< ' ';
+					size_t row = i * m + j;
+					size_t column = k * n + l;
+					char number = sudoku.Number2Char(sudoku(row, column));
+					if (sudoku.given[row * sudoku.size + column]) {
+						ostr << "\033[1;34m" << number << "\033[0m";
+					} else {
+						ostr << number;
+					}
+					ostr << ' ';
 				}
 			}
 			ostr << '|' << endl;
