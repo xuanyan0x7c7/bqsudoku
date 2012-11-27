@@ -63,7 +63,7 @@ Candidate::Candidate(const Sudoku &sudoku): Sudoku(sudoku),
 		for (size_t j = 0; j < size; ++j) {
 			row_index[i][j] = i * size + j;
 			column_index[i][j] = j * size + i;
-			box_index[i][j] = (i / m * m + j / m) * size + (i % m * n + j % m);
+			box_index[i][j] = (i / m * m + j / n) * size + (i % m * n + j % n);
 		}
 	}
 	for (size_t i = 0; i < size * size; ++i) {
