@@ -51,7 +51,7 @@ void StepByStep(const Sudoku &sudoku) {
 	while (!sbssudoku.Solved()) {
 		string str = sbssudoku.FindNext();
 		if (!str.empty()) {
-			cout << endl << str << endl << sbssudoku << endl;
+			cout << str << endl << sbssudoku << endl;
 		} else {
 			break;
 		}

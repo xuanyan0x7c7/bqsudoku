@@ -68,14 +68,33 @@ char Sudoku::Number2Char(size_t number) const {
 }
 
 ostream& operator<<(ostream &ostr, const Sudoku &sudoku) {
-	size_t size = sudoku.size;
-	for (size_t i = 0; i < size; ++i) {
-		if (i != 0) {
-			ostr << endl;
+	size_t m = sudoku.m;
+	size_t n = sudoku.n;
+	for (size_t i = 0; i < m; ++i) {
+		ostr << '+';
+		for (size_t j = 0; j < 2 * n + 1; ++j) {
+			ostr << '-';
 		}
-		for (size_t j = 0; j < size; ++j) {
-			ostr << sudoku.Number2Char(sudoku(i, j)) << ' ';
+	}
+	ostr << '+' << endl;
+	for (size_t i = 0; i < n; ++i) {
+		for (size_t j = 0; j < m; ++j) {
+			for (size_t k = 0; k < m; ++k) {
+				ostr << "| ";
+				for (size_t l = 0; l < n; ++l) {
+					ostr << sudoku.Number2Char(sudoku(i * m + j, k * n + l))
+						<< ' ';
+				}
+			}
+			ostr << '|' << endl;
 		}
+		for (size_t j = 0; j < m; ++j) {
+			ostr << '+';
+			for (size_t k = 0; k < 2 * n + 1; ++k) {
+				ostr << '-';
+			}
+		}
+		ostr << '+' << endl;
 	}
 	return ostr;
 }

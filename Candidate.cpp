@@ -15,13 +15,12 @@ using std::make_pair;
 using std::ostringstream;
 using std::pair;
 using std::reverse;
+using std::set;
 using std::size_t;
 using std::sort;
 using std::string;
 using std::unordered_map;
 using std::vector;
-#include <iostream>
-using namespace std;
 
 
 namespace {
@@ -1061,9 +1060,9 @@ string Candidate::Fish(size_t pair_size) {
 					}
 					ostr << "):";
 					for (auto x: elim) {
+						Remove(x.first, x.second, number);
 						ostr << ' ' << Row2Char(x.first) << Column2Char(x.second)
 							<< "!=" << Number2Char(number);
-						Remove(x.first, x.second, number);
 					}
 					return ostr.str();
 				}
@@ -1098,9 +1097,9 @@ string Candidate::Fish(size_t pair_size) {
 					}
 					ostr << "):";
 					for (auto x: elim) {
+						Remove(x.first, x.second, number);
 						ostr << ' ' << Row2Char(x.first) << Column2Char(x.second)
 							<< "!=" << Number2Char(number);
-						Remove(x.first, x.second, number);
 					}
 					return ostr.str();
 				}
@@ -1160,10 +1159,10 @@ string Candidate::Skyscraper() {
 							<< " in Row " << Row2Char(row1) << Row2Char(row2)
 							<< "):";
 						for (size_t cell: elim) {
+							Remove(cell, number);
 							ostr << ' ' << Row2Char(cell / size)
 								<< Column2Char(cell % size) << "!="
 								<< Number2Char(number);
-							Remove(cell, number);
 						}
 						return ostr.str();
 					}
@@ -1218,10 +1217,10 @@ string Candidate::Skyscraper() {
 							<< " in Column " << Column2Char(column1)
 							<< Column2Char(column2) << "):";
 						for (size_t cell: elim) {
+							Remove(cell, number);
 							ostr << ' ' << Row2Char(cell / size)
 								<< Column2Char(cell % size) << "!="
 								<< Number2Char(number);
-							Remove(cell, number);
 						}
 						return ostr.str();
 					}
@@ -1271,6 +1270,7 @@ string Candidate::_2StringKite() {
 				if (row1 / m == row21 / m && row1 != row21) {
 					if (column2 / n == column11 / n && column2 != column11) {
 						if ((*this)(row22, column12, number)) {
+							Remove(row22, column12, number);
 							ostringstream ostr;
 							ostr << "2 String Kite (" << Number2Char(number)
 								<< " in Row " << Row2Char(row1)
@@ -1278,12 +1278,12 @@ string Candidate::_2StringKite() {
 								<< "): " << Row2Char(row22)
 								<< Column2Char(column12) << "!="
 								<< Number2Char(number);
-							Remove(row22, column12, number);
 							return ostr.str();
 						}
 					} else if (column2 / n == column12 / n
 						&& column2 != column12) {
 						if ((*this)(row22, column11, number)) {
+							Remove(row22, column11, number);
 							ostringstream ostr;
 							ostr << "2 String Kite (" << Number2Char(number)
 								<< " in Row " << Row2Char(row1)
@@ -1291,13 +1291,13 @@ string Candidate::_2StringKite() {
 								<< "): " << Row2Char(row22)
 								<< Column2Char(column11) << "!="
 								<< Number2Char(number);
-							Remove(row22, column11, number);
 							return ostr.str();
 						}
 					}
 				} else if (row1 / m == row22 / m && row1 != row22) {
 					if (column2 / n == column11 / n && column2 != column11) {
 						if ((*this)(row21, column12, number)) {
+							Remove(row21, column12, number);
 							ostringstream ostr;
 							ostr << "2 String Kite (" << Number2Char(number)
 								<< " in Row " << Row2Char(row1)
@@ -1305,12 +1305,12 @@ string Candidate::_2StringKite() {
 								<< "): " << Row2Char(row21)
 								<< Column2Char(column12) << "!="
 								<< Number2Char(number);
-							Remove(row21, column12, number);
 							return ostr.str();
 						}
 					} else if (column2 / n == column12 / n
 						&& column2 != column12) {
 						if ((*this)(row21, column11, number)) {
+							Remove(row21, column11, number);
 							ostringstream ostr;
 							ostr << "2 String Kite (" << Number2Char(number)
 								<< " in Row " << Row2Char(row1)
@@ -1318,7 +1318,6 @@ string Candidate::_2StringKite() {
 								<< "): " << Row2Char(row21)
 								<< Column2Char(column11) << "!="
 								<< Number2Char(number);
-							Remove(row21, column11, number);
 							return ostr.str();
 						}
 					}
@@ -1381,52 +1380,52 @@ string Candidate::TurbotFish() {
 				if (column11 == column21) {
 					if (row11 / m != row2 / m && column12 != column22) {
 						if ((*this)(row12, column22, number)) {
+							Remove(row12, column22, number);
 							ostringstream ostr;
 							ostr << "Turbot Fish (" << Number2Char(number)
 								<< " in Box " << boxes[b].first + 1
 								<< " and Row " << Row2Char(row2) << "): "
 								<< Row2Char(row12) << Column2Char(column22)
 								<< "!=" << Number2Char(number);
-							Remove(row12, column22, number);
 							return ostr.str();
 						}
 					}
 				} else if (column11 == column22) {
 					if (row11 / m != row2 / m && column12 != column21) {
 						if ((*this)(row12, column21, number)) {
+							Remove(row12, column21, number);
 							ostringstream ostr;
 							ostr << "Turbot Fish (" << Number2Char(number)
 								<< " in Box " << boxes[b].first + 1
 								<< " and Row " << Row2Char(row2) << "): "
 								<< Row2Char(row12) << Column2Char(column21)
 								<< "!=" << Number2Char(number);
-							Remove(row12, column21, number);
 							return ostr.str();
 						}
 					}
 				} else if (column12 == column21) {
 					if (row12 / m != row2 / m && column11 != column22) {
 						if ((*this)(row11, column22, number)) {
+							Remove(row11, column22, number);
 							ostringstream ostr;
 							ostr << "Turbot Fish (" << Number2Char(number)
 								<< " in Box " << boxes[b].first + 1
 								<< " and Row " << Row2Char(row2) << "): "
 								<< Row2Char(row11) << Column2Char(column22)
 								<< "!=" << Number2Char(number);
-							Remove(row11, column22, number);
 							return ostr.str();
 						}
 					}
 				} else if (column12 == column22) {
 					if (row12 / m != row2 / m && column11 != column21) {
 						if ((*this)(row11, column21, number)) {
+							Remove(row11, column21, number);
 							ostringstream ostr;
 							ostr << "Turbot Fish (" << Number2Char(number)
 								<< " in Box " << boxes[b].first + 1
 								<< " and Row " << Row2Char(row2) << "): "
 								<< Row2Char(row11) << Column2Char(column21)
 								<< "!=" << Number2Char(number);
-							Remove(row11, column21, number);
 							return ostr.str();
 						}
 					}
@@ -1439,52 +1438,52 @@ string Candidate::TurbotFish() {
 				if (row11 == row21) {
 					if (column11 / n != column2 / n && row12 != row22) {
 						if ((*this)(row22, column12, number)) {
+							Remove(row22, column12, number);
 							ostringstream ostr;
 							ostr << "Turbot Fish (" << Number2Char(number)
 								<< " in Box " << boxes[b].first + 1
 								<< " and Column " << Column2Char(column2) << "): "
 								<< Row2Char(row22) << Column2Char(column12)
 								<< "!=" << Number2Char(number);
-							Remove(row22, column12, number);
 							return ostr.str();
 						}
 					}
 				} else if (row11 == row22) {
 					if (column11 / n != column2 / n && row12 != row21) {
 						if ((*this)(row21, column12, number)) {
+							Remove(row21, column12, number);
 							ostringstream ostr;
 							ostr << "Turbot Fish (" << Number2Char(number)
 								<< " in Box " << boxes[b].first + 1
 								<< " and Column " << Column2Char(column2) << "): "
 								<< Row2Char(row21) << Column2Char(column12)
 								<< "!=" << Number2Char(number);
-							Remove(row21, column12, number);
 							return ostr.str();
 						}
 					}
 				} else if (row12 == row21) {
 					if (column12 / n != column2 / n && row11 != row22) {
 						if ((*this)(row22, column11, number)) {
+							Remove(row22, column11, number);
 							ostringstream ostr;
 							ostr << "Turbot Fish (" << Number2Char(number)
 								<< " in Box " << boxes[b].first + 1
 								<< " and Column " << Column2Char(column2) << "): "
 								<< Row2Char(row22) << Column2Char(column11)
 								<< "!=" << Number2Char(number);
-							Remove(row22, column11, number);
 							return ostr.str();
 						}
 					}
 				} else if (row12 == row22) {
 					if (column12 / n != column2 / n && row11 != row21) {
 						if ((*this)(row21, column11, number)) {
+							Remove(row21, column11, number);
 							ostringstream ostr;
 							ostr << "Turbot Fish (" << Number2Char(number)
 								<< " in Box " << boxes[b].first
 								<< " and Column " << Column2Char(column2) << "): "
 								<< Row2Char(row21) << Column2Char(column11)
 								<< "!=" << Number2Char(number);
-							Remove(row21, column11, number);
 							return ostr.str();
 						}
 					}
@@ -1627,11 +1626,11 @@ string Candidate::ForcingChain() {
 									(strong_link.back())[key1]);
 								ostr << "):";
 								for (size_t cell: elim) {
+									Remove(cell);
 									ostr << ' '
 										<< Row2Char(cell / (size * size))
 										<< Column2Char(cell / size % size)
 										<< "!=" << Number2Char(cell % size + 1);
-									Remove(cell);
 								}
 								return ostr.str();
 							}
@@ -1679,11 +1678,11 @@ string Candidate::ForcingChain() {
 									(strong_link.back())[key1]);
 								ostr << "):";
 								for (size_t cell: elim) {
+									Remove(cell);
 									ostr << ' '
 										<< Row2Char(cell / (size * size))
 										<< Column2Char(cell / size % size)
 										<< "!=" << Number2Char(cell % size + 1);
-									Remove(cell);
 								}
 								return ostr.str();
 							}
@@ -1731,11 +1730,11 @@ string Candidate::ForcingChain() {
 									(strong_link.back())[key1]);
 								ostr << "):";
 								for (size_t cell: elim) {
+									Remove(cell);
 									ostr << ' '
 										<< Row2Char(cell / (size * size))
 										<< Column2Char(cell / size % size)
 										<< "!=" << Number2Char(cell % size + 1);
-									Remove(cell);
 								}
 								return ostr.str();
 							}
@@ -1783,11 +1782,11 @@ string Candidate::ForcingChain() {
 									(strong_link.back())[key1]);
 								ostr << "):";
 								for (size_t cell: elim) {
+									Remove(cell);
 									ostr << ' '
 										<< Row2Char(cell / (size * size))
 										<< Column2Char(cell / size % size)
 										<< "!=" << Number2Char(cell % size + 1);
-									Remove(cell);
 								}
 								return ostr.str();
 							}
