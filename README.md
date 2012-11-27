@@ -1,4 +1,4 @@
 bqsudoku
 ========
 
-Sudoku Solver
+Sudoku Solver and Explainer
