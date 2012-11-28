@@ -14,7 +14,11 @@ void StepByStep(const Sudoku&);
 
 int main(int argc, char **argv) {
 	if (argc == 1) {
-		cout << "--brute-force / --step-by-step" << endl;
+		cout << "BQSudoku" << endl;
+		cout << "bqsudoku [option] [file]" << endl;
+		cout << "Option: " << endl;
+		cout << "\t--brute-force / -b\tbrute force solver" << endl;
+		cout << "\t--step-by-step / -s\tstep by step solver" << endl;
 	} else {
 		size_t l, m, n;
 		string str;
@@ -25,7 +29,7 @@ int main(int argc, char **argv) {
 			fin >> l >> m >> n >> str;
 		}
 		Sudoku sudoku(m, n, str);
-		cout << sudoku << endl << endl;
+		cout << sudoku << endl;
 		if (strcmp(argv[1], "--brute-force") == 0
 			|| strcmp(argv[1], "-b") == 0) {
 			BruteForce(sudoku);
@@ -55,5 +59,8 @@ void StepByStep(const Sudoku &sudoku) {
 		} else {
 			break;
 		}
+	}
+	if (sbssudoku.Solved()) {
+		cout << "Difficulty = " << sbssudoku.Difficulty() << endl;
 	}
 }

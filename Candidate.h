@@ -19,6 +19,7 @@ namespace BQSudoku {
 		std::vector<std::vector<bool>> candidate;
 		std::vector<size_t> row_count, column_count, box_count, cell_count;
 		std::vector<std::vector<size_t>> row_index, column_index, box_index;
+		int difficulty;
 	public:
 		Candidate(const Candidate&);
 		Candidate(Candidate&&);
@@ -53,6 +54,7 @@ namespace BQSudoku {
 		bool IsWeakChain(std::size_t, std::size_t, std::size_t, std::size_t,
 			std::size_t, std::size_t);
 		std::string FindNext();
+		inline int Difficulty() const;
 	public:
 		std::string Single();
 		std::string NakedSingle();
@@ -94,5 +96,9 @@ namespace BQSudoku {
 	inline bool Candidate::operator()(std::size_t row, std::size_t column,
 		std::size_t number) const {
 		return candidate[row * size + column][number - 1];
+	}
+
+	inline int Candidate::Difficulty() const {
+		return difficulty;
 	}
 }
