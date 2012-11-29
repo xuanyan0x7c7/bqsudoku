@@ -1,6 +1,6 @@
 #pragma once
 #include <list>
-#include <sstream>
+#include <ostream>
 #include <string>
 #include <vector>
 #include "Sudoku.h"
@@ -9,9 +9,6 @@
 namespace BQSudoku {
 	class Candidate;
 }
-
-std::ostringstream&
-PrintChain(std::ostringstream&, const BQSudoku::Candidate&, std::list<size_t>);
 
 namespace BQSudoku {
 	class Candidate: public Sudoku {
@@ -34,8 +31,12 @@ namespace BQSudoku {
 		operator()(std::size_t, std::size_t);
 		inline std::vector<bool>::reference
 		operator()(std::size_t, std::size_t, std::size_t);
-		friend std::ostringstream&
-		::PrintChain(std::ostringstream&, const Candidate&, std::list<size_t>);
+	private:
+		static constexpr int ChainType_XChain = 0;
+		static constexpr int ChainType_XYChain = 1;
+		static constexpr int ChainType_AIC = 2;
+		int ChainType(const std::list<size_t>&) const;
+		void PrintChain(std::ostream&, const std::list<size_t>&);
 	public:
 		inline bool operator()(std::size_t) const;
 		inline bool operator()(std::size_t, std::size_t) const;
