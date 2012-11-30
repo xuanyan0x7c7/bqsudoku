@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <array>
 #include <deque>
-#include <list>
 #include <set>
 #include <sstream>
 #include <unordered_map>
@@ -10,7 +9,6 @@
 using namespace BQSudoku;
 using std::array;
 using std::deque;
-using std::list;
 using std::make_pair;
 using std::ostringstream;
 using std::pair;
@@ -232,7 +230,7 @@ namespace {
 	}
 }
 
-int Candidate::ChainType(const std::list<size_t> &chain) const {
+int Candidate::ChainType(const std::vector<size_t> &chain) const {
 	bool is_xchain = true;
 	for (size_t number: chain) {
 		if (number % size != chain.front() % size) {
@@ -244,18 +242,11 @@ int Candidate::ChainType(const std::list<size_t> &chain) const {
 		return ChainType_XChain;
 	}
 	bool is_xychain = true;
-	auto iter1 = chain.cbegin();
-	auto iter2 = chain.cbegin();
-	++iter2;
-	while (iter1 != chain.cend()) {
-		if (*iter1 / size != *iter2 / size) {
+	for (auto iter = chain.cbegin(); iter != chain.cend(); iter += 2) {
+		if (*iter / size != *(iter + 1) / size) {
 			is_xychain = false;
 			break;
 		}
-		++iter1;
-		++iter1;
-		++iter2;
-		++iter2;
 	}
 #ifdef NDEBUG
 	return is_xychain ? ChainType_XYChain : ChainType_AIC;
@@ -269,9 +260,9 @@ int Candidate::ChainType(const std::list<size_t> &chain) const {
 }
 
 void
-Candidate::PrintChain(std::ostream &ostr, const std::list<size_t> &chain) {
+Candidate::PrintChain(std::ostream &ostr, const std::vector<size_t> &chain) {
 	size_t number;
-	bool is_strong_link = true;;
+	bool is_strong_link = true;
 	switch (ChainType(chain)) {
 	case ChainType_XChain:
 		difficulty += 2000 + 200 * Log2(chain.size() - 2);
@@ -1616,7 +1607,7 @@ string Candidate::TurbotFish() {
 }
 
 string Candidate::ForcingChain() {
-	unordered_map<size_t, list<size_t>> original_strong_link;
+	unordered_map<size_t, vector<size_t>> original_strong_link;
 	for (size_t number = 1; number <= size; ++number) {
 		for (size_t box = 0; box < size; ++box) {
 			if (box_count[box * size + number - 1] == 2) {
@@ -1675,19 +1666,19 @@ string Candidate::ForcingChain() {
 			original_strong_link[key2] = {c[1], c[0]};
 		}
 	}
-	deque<unordered_map<size_t, list<size_t>>> strong_link(1,
+	deque<unordered_map<size_t, vector<size_t>>> strong_link(1,
 		original_strong_link);
 
 	bool ok = true;
 	while (ok) {
 		ok = false;
-		unordered_map<size_t, list<size_t>> link;
+		unordered_map<size_t, vector<size_t>> link;
 		size_t original_size = strong_link.size();
 		for (size_t d1 = 0; d1 <= (original_size - 1) / 2; ++d1) {
 			for (const auto &link1: strong_link[d1]) {
 				size_t num11 = link1.first / (size * size * size);
 				size_t num12 = link1.first % (size * size * size);
-				const list<size_t> &l1 = link1.second;
+				const vector<size_t> &l1 = link1.second;
 				if (num11 > num12) {
 					continue;
 				}
@@ -1695,7 +1686,7 @@ string Candidate::ForcingChain() {
 				for (const auto &link2: strong_link[d2]) {
 					size_t num21 = link2.first / (size * size * size);
 					size_t num22 = link2.first % (size * size * size);
-					const list<size_t> &l2 = link2.second;
+					const vector<size_t> &l2 = link2.second;
 					if (num21 > num22) {
 						continue;
 					}
@@ -1716,20 +1707,20 @@ string Candidate::ForcingChain() {
 							}
 						}
 						if (!found) {
-							list<size_t> new_list1(l1.crbegin(), l1.crend());
-							new_list1.insert(new_list1.end(),
+							vector<size_t> new_vector1(l1.crbegin(), l1.crend());
+							new_vector1.insert(new_vector1.end(),
 								l2.cbegin(), l2.cend());
-							link[key1] = new_list1;
-							list<size_t> new_list2(l2.crbegin(), l2.crend());
-							new_list2.insert(new_list2.end(),
+							link[key1] = new_vector1;
+							vector<size_t> new_vector2(l2.crbegin(), l2.crend());
+							new_vector2.insert(new_vector2.end(),
 								l1.cbegin(), l1.cend());
-							link[key2] = new_list2;
+							link[key2] = new_vector2;
 							if (!ok) {
 								ok = true;
 								strong_link.push_back(link);
 							} else {
-								(strong_link.back())[key1] = new_list1;
-								(strong_link.back())[key2] = new_list2;
+								(strong_link.back())[key1] = new_vector1;
+								(strong_link.back())[key2] = new_vector2;
 							}
 							vector<size_t> common_effect_cell
 								= CommonEffectCell(num12, num22);
@@ -1741,7 +1732,7 @@ string Candidate::ForcingChain() {
 							}
 							if (!elim.empty()) {
 								ostringstream ostr;
-								PrintChain(ostr, new_list1);
+								PrintChain(ostr, new_vector1);
 								for (size_t cell: elim) {
 									Remove(cell);
 									ostr << ' '
@@ -1765,20 +1756,20 @@ string Candidate::ForcingChain() {
 							}
 						}
 						if (!found) {
-							list<size_t> new_list1(l1.crbegin(), l1.crend());
-							new_list1.insert(new_list1.end(),
+							vector<size_t> new_vector1(l1.crbegin(), l1.crend());
+							new_vector1.insert(new_vector1.end(),
 								l2.crbegin(), l2.crend());
-							link[key1] = new_list1;
-							list<size_t> new_list2 = l2;
-							new_list2.insert(new_list2.end(),
+							link[key1] = new_vector1;
+							vector<size_t> new_vector2 = l2;
+							new_vector2.insert(new_vector2.end(),
 								l1.cbegin(), l1.cend());
-							link[key2] = new_list2;
+							link[key2] = new_vector2;
 							if (!ok) {
 								ok = true;
 								strong_link.push_back(link);
 							} else {
-								(strong_link.back())[key1] = new_list1;
-								(strong_link.back())[key2] = new_list2;
+								(strong_link.back())[key1] = new_vector1;
+								(strong_link.back())[key2] = new_vector2;
 							}
 							vector<size_t> common_effect_cell
 								= CommonEffectCell(num12, num21);
@@ -1790,7 +1781,7 @@ string Candidate::ForcingChain() {
 							}
 							if (!elim.empty()) {
 								ostringstream ostr;
-								PrintChain(ostr, new_list1);
+								PrintChain(ostr, new_vector1);
 								for (size_t cell: elim) {
 									Remove(cell);
 									ostr << ' '
@@ -1814,20 +1805,20 @@ string Candidate::ForcingChain() {
 							}
 						}
 						if (!found) {
-							list<size_t> new_list1(l1);
-							new_list1.insert(new_list1.end(),
+							vector<size_t> new_vector1(l1);
+							new_vector1.insert(new_vector1.end(),
 								l2.cbegin(), l2.cend());
-							link[key1] = new_list1;
-							list<size_t> new_list2(l2.crbegin(), l2.crend());
-							new_list2.insert(new_list2.end(),
+							link[key1] = new_vector1;
+							vector<size_t> new_vector2(l2.crbegin(), l2.crend());
+							new_vector2.insert(new_vector2.end(),
 								l1.crbegin(), l1.crend());
-							link[key2] = new_list2;
+							link[key2] = new_vector2;
 							if (!ok) {
 								ok = true;
 								strong_link.push_back(link);
 							} else {
-								(strong_link.back())[key1] = new_list1;
-								(strong_link.back())[key2] = new_list2;
+								(strong_link.back())[key1] = new_vector1;
+								(strong_link.back())[key2] = new_vector2;
 							}
 							vector<size_t> common_effect_cell
 								= CommonEffectCell(num11, num22);
@@ -1839,7 +1830,7 @@ string Candidate::ForcingChain() {
 							}
 							if (!elim.empty()) {
 								ostringstream ostr;
-								PrintChain(ostr, new_list1);
+								PrintChain(ostr, new_vector1);
 								for (size_t cell: elim) {
 									Remove(cell);
 									ostr << ' '
@@ -1863,20 +1854,20 @@ string Candidate::ForcingChain() {
 							}
 						}
 						if (!found) {
-							list<size_t> new_list1(l1);
-							new_list1.insert(new_list1.end(),
+							vector<size_t> new_vector1(l1);
+							new_vector1.insert(new_vector1.end(),
 								l2.crbegin(), l2.crend());
-							link[key1] = new_list1;
-							list<size_t> new_list2(l2);
-							new_list2.insert(new_list2.end(),
+							link[key1] = new_vector1;
+							vector<size_t> new_vector2(l2);
+							new_vector2.insert(new_vector2.end(),
 								l1.crbegin(), l1.crend());
-							link[key2] = new_list2;
+							link[key2] = new_vector2;
 							if (!ok) {
 								ok = true;
 								strong_link.push_back(link);
 							} else {
-								(strong_link.back())[key1] = new_list1;
-								(strong_link.back())[key2] = new_list2;
+								(strong_link.back())[key1] = new_vector1;
+								(strong_link.back())[key2] = new_vector2;
 							}
 							vector<size_t> common_effect_cell
 								= CommonEffectCell(num11, num21);
@@ -1888,7 +1879,7 @@ string Candidate::ForcingChain() {
 							}
 							if (!elim.empty()) {
 								ostringstream ostr;
-								PrintChain(ostr, new_list1);
+								PrintChain(ostr, new_vector1);
 								for (size_t cell: elim) {
 									Remove(cell);
 									ostr << ' '

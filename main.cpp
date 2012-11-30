@@ -46,7 +46,7 @@ void BruteForce(const Sudoku &sudoku) {
 	bfsudoku();
 	cout << "Totally " << bfsudoku.answer_count << " answer(s)" << endl;
 	for (const Sudoku &x: bfsudoku.answer) {
-		cout << endl << x << endl;
+		cout << x << endl;
 	}
 }
 

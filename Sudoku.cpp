@@ -87,7 +87,7 @@ ostream& operator<<(ostream &ostr, const Sudoku &sudoku) {
 					size_t column = k * n + l;
 					char number = sudoku.Number2Char(sudoku(row, column));
 					if (sudoku.given[row * sudoku.size + column]) {
-						ostr << "\033[1;34m" << number << "\033[0m";
+						ostr << "\033[34m" << number << "\033[0m";
 					} else {
 						ostr << number;
 					}

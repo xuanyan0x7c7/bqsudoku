@@ -1,5 +1,4 @@
 #pragma once
-#include <list>
 #include <ostream>
 #include <string>
 #include <vector>
@@ -35,8 +34,8 @@ namespace BQSudoku {
 		static constexpr int ChainType_XChain = 0;
 		static constexpr int ChainType_XYChain = 1;
 		static constexpr int ChainType_AIC = 2;
-		int ChainType(const std::list<size_t>&) const;
-		void PrintChain(std::ostream&, const std::list<size_t>&);
+		int ChainType(const std::vector<size_t>&) const;
+		void PrintChain(std::ostream&, const std::vector<size_t>&);
 	public:
 		inline bool operator()(std::size_t) const;
 		inline bool operator()(std::size_t, std::size_t) const;
