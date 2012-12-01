@@ -128,7 +128,7 @@ void BruteForceSolver::Resume(size_t column)
 }
 
 void BruteForceSolver::Search(int depth) {
-	if (check_uniqueness && answer_count == 1) {
+	if (check_uniqueness && answer_count == 2) {
 		return;
 	} else if (head->right == head) {
 		AnswerFound();

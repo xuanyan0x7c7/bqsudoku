@@ -9,6 +9,7 @@ using namespace std;
 using namespace BQSudoku;
 
 
+void CheckUniqueness(const Sudoku&);
 void BruteForce(const Sudoku&);
 void StepByStep(const Sudoku&);
 
@@ -17,6 +18,7 @@ int main(int argc, char **argv) {
 		cout << "BQSudoku" << endl;
 		cout << "bqsudoku [option] [file]" << endl;
 		cout << "Option: " << endl;
+		cout << "\t--check / -c\t check validity" << endl;
 		cout << "\t--brute-force / -b\tbrute force solver" << endl;
 		cout << "\t--step-by-step / -s\tstep by step solver" << endl;
 	} else {
@@ -30,7 +32,10 @@ int main(int argc, char **argv) {
 		}
 		Sudoku sudoku(m, n, str);
 		cout << sudoku << endl;
-		if (strcmp(argv[1], "--brute-force") == 0
+		if (strcmp(argv[1], "--check") == 0
+			|| strcmp(argv[1], "-c") == 0) {
+			CheckUniqueness(sudoku);
+		} else if (strcmp(argv[1], "--brute-force") == 0
 			|| strcmp(argv[1], "-b") == 0) {
 			BruteForce(sudoku);
 		} else if (strcmp(argv[1], "--step-by-step") == 0
@@ -39,6 +44,21 @@ int main(int argc, char **argv) {
 		}
 	}
 	return 0;
+}
+
+void CheckUniqueness(const Sudoku &sudoku) {
+	BruteForceSolver bfsudoku(sudoku, true);
+	bfsudoku();
+	switch (bfsudoku.answer_count) {
+	case 0:
+		cout << "No answer" << endl;
+		break;
+	case 1:
+		cout << "There is an answer, and the answer is unique" << endl;
+		break;
+	default:
+		cout << "There are multiple answers" << endl;
+	}
 }
 
 void BruteForce(const Sudoku &sudoku) {
