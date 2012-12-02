@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <array>
 #include <deque>
 #include <set>
 #include <sstream>
@@ -7,7 +6,6 @@
 #include <utility>
 #include "Candidate.h"
 using namespace BQSudoku;
-using std::array;
 using std::deque;
 using std::make_pair;
 using std::ostringstream;
@@ -41,6 +39,15 @@ namespace {
 		ostringstream ostr;
 		ostr << num;
 		return ostr.str();
+	}
+
+	int Log2(int n) {
+		int k = 0;
+		while (n > 1) {
+			n >>= 1;
+			++k;
+		}
+		return k;
 	}
 }
 
@@ -216,17 +223,6 @@ bool Candidate::IsWeakChain(size_t r1, size_t c1, size_t n1, size_t r2,
 		}
 	} else {
 		return r1 == r2 && c1 == c2;
-	}
-}
-
-namespace {
-	int Log2(int n) {
-		int k = 0;
-		while (n > 1) {
-			n >>= 1;
-			++k;
-		}
-		return k;
 	}
 }
 
@@ -672,8 +668,8 @@ string Candidate::LockedCandidate() {
 }
 
 namespace {
-	const array<string, 11> pair_name = {{"", "", "Pair", "Triple", "Quad",
-		"Pent", "Hex", "Sept", "Oct", "Nov", "Dec"}};
+	static const string pair_name[11] = {"", "", "Pair", "Triple", "Quad",
+		"Pent", "Hex", "Sept", "Oct", "Nov", "Dec"};
 }
 
 string Candidate::NakedPair(size_t pair_size) {
@@ -1092,9 +1088,9 @@ string Candidate::HiddenPair(size_t pair_size) {
 }
 
 string Candidate::Fish(size_t fish_size) {
-	static const array<string, 5> xwing_name =
-		{{"", "", "X-Wing", "Swordfish", "Jellyfish"}};
-	string name = fish_size < 5 ? xwing_name[fish_size]
+	static const string xwing_name[6] =
+		{"", "", "X-Wing", "Swordfish", "Jellyfish", "Squirmbag"};
+	string name = fish_size < 6 ? xwing_name[fish_size]
 		: Num2Str(fish_size) + string("X-Wing");
 	for (size_t number = 1; number <= size; ++number) {
 		vector<size_t> row_available, column_available;

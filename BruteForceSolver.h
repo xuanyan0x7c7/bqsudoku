@@ -1,4 +1,5 @@
 #pragma once
+#include <deque>
 #include <vector>
 #include "Sudoku.h"
 
@@ -12,15 +13,15 @@ namespace BQSudoku {
 			std::size_t row, column;
 			Node up, down, left, right;
 		};
-		std::size_t rows, columns;
+		const std::size_t rows, columns;
 		Node head;
 		std::vector<Node> node;
 		std::vector<Node> column_head;
 		std::vector<std::size_t> column_count;
 		std::vector<bool> row_choose;
-		bool check_uniqueness;
+		const bool check_uniqueness;
 	public:
-		std::vector<Sudoku> answer;
+		std::deque<Sudoku> answer;
 		unsigned long long answer_count;
 	public:
 		BruteForceSolver(const BruteForceSolver&);

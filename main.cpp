@@ -18,6 +18,7 @@ int main(int argc, char **argv) {
 		cout << "BQSudoku" << endl;
 		cout << "bqsudoku [option] [file]" << endl;
 		cout << "Option: " << endl;
+		cout << "\t--print / -p\t print sudoku" << endl;
 		cout << "\t--check / -c\t check validity" << endl;
 		cout << "\t--brute-force / -b\tbrute force solver" << endl;
 		cout << "\t--step-by-step / -s\tstep by step solver" << endl;
@@ -32,14 +33,11 @@ int main(int argc, char **argv) {
 		}
 		Sudoku sudoku(m, n, str);
 		cout << sudoku << endl;
-		if (strcmp(argv[1], "--check") == 0
-			|| strcmp(argv[1], "-c") == 0) {
+		if (strcmp(argv[1], "--check") == 0 || strcmp(argv[1], "-c") == 0) {
 			CheckUniqueness(sudoku);
-		} else if (strcmp(argv[1], "--brute-force") == 0
-			|| strcmp(argv[1], "-b") == 0) {
+		} else if (strcmp(argv[1], "--brute-force") == 0 || strcmp(argv[1], "-b") == 0) {
 			BruteForce(sudoku);
-		} else if (strcmp(argv[1], "--step-by-step") == 0
-			|| strcmp(argv[1], "-s") == 0) {
+		} else if (strcmp(argv[1], "--step-by-step") == 0 || strcmp(argv[1], "-s") == 0) {
 			StepByStep(sudoku);
 		}
 	}
@@ -64,9 +62,9 @@ void CheckUniqueness(const Sudoku &sudoku) {
 void BruteForce(const Sudoku &sudoku) {
 	BruteForceSolver bfsudoku(sudoku);
 	bfsudoku();
-	cout << "Totally " << bfsudoku.answer_count << " answer(s)" << endl;
+	cout << endl << "Totally " << bfsudoku.answer_count << " answer(s)" << endl;
 	for (const Sudoku &x: bfsudoku.answer) {
-		cout << x << endl;
+		cout << endl << x << endl;
 	}
 }
 
@@ -75,12 +73,12 @@ void StepByStep(const Sudoku &sudoku) {
 	while (!sbssudoku.Solved()) {
 		string str = sbssudoku.FindNext();
 		if (!str.empty()) {
-			cout << str << endl << sbssudoku << endl;
+			cout << endl << str << endl << sbssudoku << endl;
 		} else {
 			break;
 		}
 	}
 	if (sbssudoku.Solved()) {
-		cout << "Difficulty = " << sbssudoku.Difficulty() << endl;
+		cout << endl << "Difficulty = " << sbssudoku.Difficulty() << endl;
 	}
 }

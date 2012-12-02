@@ -12,8 +12,8 @@ std::ostream& operator<<(std::ostream&, const BQSudoku::Sudoku&);
 namespace BQSudoku {
 	class Sudoku {
 	protected:
-		std::size_t m, n;
-		std::size_t size;
+		const std::size_t m, n;
+		const std::size_t size;
 		std::vector<size_t> board;
 		std::vector<bool> given;
 	public:
