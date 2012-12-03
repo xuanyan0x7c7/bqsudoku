@@ -1,12 +1,10 @@
 #include <cstring>
 #include <fstream>
-#include <iomanip>
 #include <iostream>
 #include "BruteForceSolver.h"
 #include "Candidate.h"
 #include "Sudoku.h"
 using namespace std;
-using namespace BQSudoku;
 
 
 void CheckUniqueness(const Sudoku&);

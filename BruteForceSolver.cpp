@@ -1,8 +1,4 @@
-#include <iostream>
 #include "BruteForceSolver.h"
-using namespace BQSudoku;
-using std::cout;
-using std::endl;
 using std::size_t;
 using std::vector;
 
@@ -23,9 +19,8 @@ BruteForceSolver::~BruteForceSolver() {
 }
 
 BruteForceSolver::BruteForceSolver(const Sudoku &sudoku, bool check_uniqueness):
-	Sudoku(sudoku), rows(size * size * size),
-	columns(4 * size * size), node(4 * rows), column_head(columns),
-	column_count(columns, size), row_choose(rows),
+	Sudoku(sudoku), rows(size * size * size), columns(4 * size * size),
+	node(4 * rows), column_head(columns), column_count(columns, size), row_choose(rows),
 	check_uniqueness(check_uniqueness), answer_count(0) {
 	head = new NodeType;
 	head->left = head->right = head;
@@ -70,8 +65,7 @@ BruteForceSolver::BruteForceSolver(const Sudoku &sudoku, bool check_uniqueness):
 				column_head[node[index]->column]->up = node[index];
 				node[++index] = new NodeType;
 				node[index]->row = column >> 2;
-				node[index]->column = 2 * size * size
-					+ (i / m * m + j / n) * size + k;
+				node[index]->column = 2 * size * size + (i / m * m + j / n) * size + k;
 				node[index]->left = node[column]->left;
 				node[index]->right = node[column];
 				node[index]->left->right = node[index];
@@ -100,10 +94,8 @@ void BruteForceSolver::Remove(size_t column) {
 	Node &column_head_node = column_head[column];
 	column_head_node->left->right = column_head_node->right;
 	column_head_node->right->left = column_head_node->left;
-	for (Node row_node = column_head_node->down; row_node != column_head_node;
-			row_node = row_node->down) {
-		for (Node column_node = row_node->right; column_node != row_node;
-				column_node = column_node->right) {
+	for (Node row_node = column_head_node->down; row_node != column_head_node; row_node = row_node->down) {
+		for (Node column_node = row_node->right; column_node != row_node; column_node = column_node->right) {
 			--column_count[column_node->column];
 			column_node->up->down = column_node->down;
 			column_node->down->up = column_node->up;
@@ -111,13 +103,10 @@ void BruteForceSolver::Remove(size_t column) {
 	}
 }
 
-void BruteForceSolver::Resume(size_t column)
-{
+void BruteForceSolver::Resume(size_t column) {
 	Node &column_head_node = column_head[column];
-	for (Node row_node = column_head_node->up; row_node != column_head_node;
-			row_node = row_node->up) {
-		for (Node column_node = row_node->left; column_node != row_node;
-				column_node = column_node->left) {
+	for (Node row_node = column_head_node->up; row_node != column_head_node; row_node = row_node->up) {
+		for (Node column_node = row_node->left; column_node != row_node; column_node = column_node->left) {
 			++column_count[column_node->column];
 			column_node->up->down = column_node;
 			column_node->down->up = column_node;
@@ -138,10 +127,10 @@ void BruteForceSolver::Search(int depth) {
 	size_t min = size + 1;
 	size_t column = 0;
 
-	for (Node column_node = head->right; column_node != head;
-			column_node = column_node->right) {
+	for (Node column_node = head->right; column_node != head; column_node = column_node->right) {
 		if (column_count[column_node->column] < min) {
-			min = column_count[column = column_node->column];
+			column = column_node->column;
+			min = column_count[column];
 			if (min == 1) {
 				break;
 			} else if (min == 0) {
@@ -151,16 +140,13 @@ void BruteForceSolver::Search(int depth) {
 	}
 
 	Remove(column);
-	for (Node row_node = column_head[column]->down;
-			row_node != column_head[column]; row_node = row_node->down) {
+	for (Node row_node = column_head[column]->down; row_node != column_head[column]; row_node = row_node->down) {
 		row_choose[row_node->row] = true;
-		for (Node column_node = row_node->right; column_node != row_node;
-				column_node = column_node->right) {
+		for (Node column_node = row_node->right; column_node != row_node; column_node = column_node->right) {
 			Remove(column_node->column);
 		}
 		Search(depth + 1);
-		for (Node column_node = row_node->left; column_node != row_node;
-				column_node = column_node->left) {
+		for (Node column_node = row_node->left; column_node != row_node; column_node = column_node->left) {
 			Resume(column_node->column);
 		}
 		row_choose[row_node->row] = false;

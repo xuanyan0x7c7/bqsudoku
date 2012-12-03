@@ -1,13 +1,9 @@
 #include <cstring>
-#include <ostream>
 #include "Sudoku.h"
-using namespace BQSudoku;
-using std::endl;
 using std::ostream;
 using std::size_t;
 using std::string;
 using std::vector;
-#define SHOW_COLOR
 
 
 Sudoku::Sudoku(const Sudoku&) = default;
@@ -17,11 +13,8 @@ Sudoku& Sudoku::operator=(Sudoku&&) = delete;
 Sudoku::~Sudoku() = default;
 
 Sudoku::Sudoku(): Sudoku(3, 3) {}
-
 Sudoku::Sudoku(size_t n): Sudoku(n, n) {}
-
 Sudoku::Sudoku(size_t m, size_t n): m(m), n(n), size(m * n), board(size * size), given(size * size) {}
-
 Sudoku::Sudoku(size_t n, const string &str): Sudoku(n, n, str) {}
 
 Sudoku::Sudoku(size_t m, size_t n, const string &str): Sudoku(m, n) {
@@ -76,7 +69,7 @@ ostream& operator<<(ostream &ostr, const Sudoku &sudoku) {
 			ostr << '+';
 			ostr << string(2 * n + 1, '-');
 		}
-		ostr << '+' << endl;
+		ostr << "+\n";
 		for (size_t j = 0; j < m; ++j) {
 			for (size_t k = 0; k < m; ++k) {
 				ostr << "| ";
@@ -84,19 +77,19 @@ ostream& operator<<(ostream &ostr, const Sudoku &sudoku) {
 					size_t row = i * m + j;
 					size_t column = k * n + l;
 					char number = sudoku.Number2Char(sudoku(row, column));
+#ifdef SHOW_COLOR
 					if (sudoku.given[row * sudoku.size + column]) {
-						#ifdef SHOW_COLOR
-							ostr << "\033[31m" << number << "\033[0m";
-						#else
-							ostr << number;
-						#endif
+						ostr << "\033[31m" << number << "\033[0m";
 					} else {
 						ostr << number;
 					}
+#else
+					ostr << number;
+#endif
 					ostr << ' ';
 				}
 			}
-			ostr << '|' << endl;
+			ostr << "|\n";
 		}
 	}
 	for (size_t i = 0; i < m; ++i) {

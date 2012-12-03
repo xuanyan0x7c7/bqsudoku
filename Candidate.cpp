@@ -5,7 +5,6 @@
 #include <unordered_map>
 #include <utility>
 #include "Candidate.h"
-using namespace BQSudoku;
 using std::deque;
 using std::make_pair;
 using std::ostringstream;
@@ -59,16 +58,25 @@ Candidate::~Candidate() = default;
 
 Candidate::Candidate(const Sudoku &sudoku): Sudoku(sudoku),
 	candidate(size * size, vector<bool>(size, true)),
-	row_count(size * size, size), column_count(size * size, size),
-	box_count(size * size, size), cell_count(size * size, size),
-	row_index(size, vector<size_t>(size)),
-	column_index(size, vector<size_t>(size)),
-	box_index(size, vector<size_t>(size)), difficulty(0) {
+	row_count(size, vector<size_t>(size, size)), column_count(size, vector<size_t>(size, size)),
+	box_count(size, vector<size_t>(size, size)), cell_count(size * size, size),
+	row_index(size, vector<size_t>(size)), column_index(size, vector<size_t>(size)), box_index(size, vector<size_t>(size)),
+	row_contain(size, vector<bool>(size)), column_contain(size, vector<bool>(size)), box_contain(size, vector<bool>(size)),
+	difficulty(0) {
 	for (size_t i = 0; i < size; ++i) {
 		for (size_t j = 0; j < size; ++j) {
 			row_index[i][j] = i * size + j;
 			column_index[i][j] = j * size + i;
 			box_index[i][j] = (i / m * m + j / n) * size + (i % m * n + j % n);
+		}
+	}
+	for (size_t i = 0; i < size; ++i) {
+		for (size_t j = 0; j < size; ++j) {
+			row_contain[i][i * size + j] = true;
+			column_contain[i][j * size + i] = true;
+		}
+		for (size_t r = 0; r < m; ++r) for (size_t c = 0; c < n; ++c) {
+			box_contain[i][(i / m * m + r) * size + (i % m * n + c)] = true;
 		}
 	}
 	for (size_t i = 0; i < size * size; ++i) {
@@ -105,9 +113,9 @@ void Candidate::Remove(size_t row, size_t column, size_t number) {
 	size_t index = row * size + column;
 	auto c = candidate[index][number - 1];
 	if (c) {
-		--row_count[row * size + number - 1];
-		--column_count[column * size + number - 1];
-		--box_count[(row / m * m + column / n) * size + number - 1];
+		--row_count[row][number - 1];
+		--column_count[column][number - 1];
+		--box_count[row / m * m + column / n][number - 1];
 		--cell_count[index];
 		c = false;
 	}
@@ -152,8 +160,7 @@ Candidate::CommonEffectCell(size_t r1, size_t c1, size_t r2, size_t c2) {
 	} else if (r1 / m == r2 / m) {
 		if (c1 / n == c2 / n) {
 			for (size_t cell: box_index[r1 / m * m + c1 / n]) {
-				if ((cell / size != r1 || cell % size != c1)
-					&& (cell / size != r2 || cell % size != c2)) {
+				if ((cell / size != r1 || cell % size != c1) && (cell / size != r2 || cell % size != c2)) {
 					vec.push_back(cell);
 				}
 			}
@@ -179,8 +186,7 @@ Candidate::CommonEffectCell(size_t r1, size_t c1, size_t r2, size_t c2) {
 
 vector<size_t>
 Candidate::CommonEffectCell(size_t n1, size_t n2) {
-	return CommonEffectCell(n1 / (size * size), n1 / size % size,
-		n1 % size + 1, n2 / (size * size), n2 / size % size, n2 % size + 1);
+	return CommonEffectCell(n1 / (size * size), n1 / size % size, n1 % size + 1, n2 / (size * size), n2 / size % size, n2 % size + 1);
 }
 
 vector<size_t> Candidate::CommonEffectCell(size_t r1, size_t c1, size_t n1,
@@ -207,8 +213,7 @@ vector<size_t> Candidate::CommonEffectCell(size_t r1, size_t c1, size_t n1,
 }
 
 bool Candidate::IsWeakChain(size_t n1, size_t n2) {
-	return IsWeakChain(n1 / (size * size), n1 / size % size, n1 % size + 1,
-		n2 / (size * size), n2 / size % size, n2 % size + 1);
+	return IsWeakChain(n1 / (size * size), n1 / size % size, n1 % size + 1, n2 / (size * size), n2 / size % size, n2 % size + 1);
 }
 
 bool Candidate::IsWeakChain(size_t r1, size_t c1, size_t n1, size_t r2,
@@ -270,8 +275,7 @@ Candidate::PrintChain(std::ostream &ostr, const std::vector<size_t> &chain) {
 			if (number != chain.front()) {
 				ostr << (is_strong_link ? "==" : "--");
 			}
-			ostr << Row2Char(number / (size * size))
-				<< Column2Char(number / size % size);
+			ostr << Row2Char(number / (size * size)) << Column2Char(number / size % size);
 		}
 		ostr << "): ";
 		break;
@@ -282,9 +286,7 @@ Candidate::PrintChain(std::ostream &ostr, const std::vector<size_t> &chain) {
 			if (iter != chain.cbegin()) {
 				ostr << "--";
 			}
-			ostr << Row2Char(*iter / (size * size))
-				<< Column2Char(*iter / size % size) << '('
-				<< Number2Char(*iter % size + 1) << "==";
+			ostr << Row2Char(*iter / (size * size)) << Column2Char(*iter / size % size) << '(' << Number2Char(*iter % size + 1) << "==";
 			ostr << Number2Char(*++iter % size + 1) << ')';
 		}
 		ostr << "): ";
@@ -300,9 +302,7 @@ Candidate::PrintChain(std::ostream &ostr, const std::vector<size_t> &chain) {
 			if (number != chain.front()) {
 				ostr << (is_strong_link ? "==" : "--");
 			}
-			ostr << Row2Char(number / (size * size))
-				<< Column2Char(number / size % size) << '('
-				<< Number2Char(number % size + 1) << ')';
+			ostr << Row2Char(number / (size * size)) << Column2Char(number / size % size) << '(' << Number2Char(number % size + 1) << ')';
 		}
 		ostr << "): ";
 		break;
@@ -377,8 +377,7 @@ string Candidate::Single() {
 			Fill(row, column, number);
 			++difficulty;
 			ostringstream ostr;
-			ostr << "Single: " << Row2Char(row) << Column2Char(column)
-				<< '=' << Number2Char(number);
+			ostr << "Single: " << Row2Char(row) << Column2Char(column) << '=' << Number2Char(number);
 			return ostr.str();
 		}
 	}
@@ -398,8 +397,7 @@ string Candidate::Single() {
 			Fill(row, column, number);
 			++difficulty;
 			ostringstream ostr;
-			ostr << "Single: " << Row2Char(row) << Column2Char(column)
-				<< '=' << Number2Char(number);
+			ostr << "Single: " << Row2Char(row) << Column2Char(column) << '=' << Number2Char(number);
 			return ostr.str();
 		}
 	}
@@ -419,8 +417,7 @@ string Candidate::Single() {
 			Fill(row, column, number);
 			++difficulty;
 			ostringstream ostr;
-			ostr << "Single: " << Row2Char(row) << Column2Char(column)
-				<< '=' << Number2Char(number);
+			ostr << "Single: " << Row2Char(row) << Column2Char(column) << '=' << Number2Char(number);
 			return ostr.str();
 		}
 	}
@@ -436,8 +433,7 @@ string Candidate::NakedSingle() {
 			Fill(pos, number);
 			difficulty += 100;
 			ostringstream ostr;
-			ostr << "Naked Single: " << Row2Char(pos / size)
-				<< Column2Char(pos % size) << '=' << Number2Char(number);
+			ostr << "Naked Single: " << Row2Char(pos / size) << Column2Char(pos % size) << '=' << Number2Char(number);
 			return ostr.str();
 		}
 	}
@@ -447,7 +443,7 @@ string Candidate::NakedSingle() {
 string Candidate::HiddenSingle() {
 	for (size_t box = 0; box < size; ++box) {
 		for (size_t number = 1; number <= size; ++number) {
-			if (box_count[box * size + number - 1] == 1) {
+			if (box_count[box][number - 1] == 1) {
 				size_t row, column;
 				for (size_t cell: box_index[box]) {
 					if ((*this)(cell, number)) {
@@ -459,9 +455,7 @@ string Candidate::HiddenSingle() {
 				Fill(row, column, number);
 				difficulty += 10;
 				ostringstream ostr;
-				ostr << "Hidden Single (Box " << box + 1 << "): "
-					<< Row2Char(row) << Column2Char(column) << '='
-					<< Number2Char(number);
+				ostr << "Hidden Single (Box " << box + 1 << "): " << Row2Char(row) << Column2Char(column) << '=' << Number2Char(number);
 				return ostr.str();
 			}
 		}
@@ -469,7 +463,7 @@ string Candidate::HiddenSingle() {
 
 	for (size_t row = 0; row < size; ++row) {
 		for (size_t number = 1; number <= size; ++number) {
-			if (row_count[row * size + number - 1] == 1) {
+			if (row_count[row][number - 1] == 1) {
 				size_t column;
 				for (size_t cell: row_index[row]) {
 					if (((*this))(cell, number)) {
@@ -480,9 +474,7 @@ string Candidate::HiddenSingle() {
 				Fill(row, column, number);
 				difficulty += 20;
 				ostringstream ostr;
-				ostr << "Hidden Single (Row " << Row2Char(row) << "): "
-					<< Row2Char(row) << Column2Char(column) << '='
-					<< Number2Char(number);
+				ostr << "Hidden Single (Row " << Row2Char(row) << "): " << Row2Char(row) << Column2Char(column) << '=' << Number2Char(number);
 				return ostr.str();
 			}
 		}
@@ -490,7 +482,7 @@ string Candidate::HiddenSingle() {
 
 	for (size_t column = 0; column < size; ++column) {
 		for (size_t number = 1; number <= size; ++number) {
-			if (column_count[column * size + number - 1] == 1) {
+			if (column_count[column][number - 1] == 1) {
 				size_t row = 0;
 				for (size_t cell: column_index[column]) {
 					if ((*this)(cell, number)) {
@@ -532,10 +524,8 @@ string Candidate::LockedCandidate() {
 			for (size_t i = 0; i < m; ++i) if (count[i] == sum) {
 				for (size_t r = 0; r < m; ++r) if (r != row % m) {
 					for (size_t c = 0; c < n; ++c) {
-						if ((*this)(row / m * m + r, column / n * n + c,
-							number)) {
-							elim.push_back(make_pair(row / m * m + r,
-								column / n * n + c));
+						if ((*this)(row / m * m + r, column / n * n + c, number)) {
+							elim.push_back(make_pair(row / m * m + r, column / n * n + c));
 						}
 					}
 				}
@@ -544,12 +534,10 @@ string Candidate::LockedCandidate() {
 			if (!elim.empty()) {
 				difficulty += 100;
 				ostringstream ostr;
-				ostr << "Locked Candidates (" << Number2Char(number)
-					<< " in Row " << Row2Char(row) << "):";
+				ostr << "Locked Candidates (" << Number2Char(number) << " in Row " << Row2Char(row) << "):";
 				for (auto &x: elim) {
 					Remove(x.first, x.second, number);
-					ostr << ' ' << Row2Char(x.first) << Column2Char(x.second)
-						<< "!=" << Number2Char(number);
+					ostr << ' ' << Row2Char(x.first) << Column2Char(x.second) << "!=" << Number2Char(number);
 				}
 				return ostr.str();
 			}
@@ -575,10 +563,8 @@ string Candidate::LockedCandidate() {
 			for (size_t i = 0; i < n; ++i) if (count[i] == sum) {
 				for (size_t c = 0; c < n; ++c) if (c != column % n) {
 					for (size_t r = 0; r < m; ++r) {
-						if ((*this)(row / m * m + r, column / n * n + c,
-							number)) {
-							elim.push_back(make_pair(row / m * m + r,
-								column / n * n + c));
+						if ((*this)(row / m * m + r, column / n * n + c, number)) {
+							elim.push_back(make_pair(row / m * m + r, column / n * n + c));
 						}
 					}
 				}
@@ -591,8 +577,7 @@ string Candidate::LockedCandidate() {
 					<< " in Column " << Column2Char(column) << "):";
 				for (auto &x: elim) {
 					Remove(x.first, x.second, number);
-					ostr << ' ' << Row2Char(x.first) << Column2Char(x.second)
-						<< "!=" << Number2Char(number);
+					ostr << ' ' << Row2Char(x.first) << Column2Char(x.second) << "!=" << Number2Char(number);
 				}
 				return ostr.str();
 			}
@@ -640,24 +625,20 @@ string Candidate::LockedCandidate() {
 			if (!row_elim.empty()) {
 				difficulty += 100;
 				ostringstream ostr;
-				ostr << "Locked Candidates (" << Number2Char(number)
-					<< " in Box " << box + 1 << "):";
+				ostr << "Locked Candidates (" << Number2Char(number) << " in Box " << box + 1 << "):";
 				for (auto &x: row_elim) {
 					Remove(x.first, x.second, number);
-					ostr << ' ' << Row2Char(x.first) << Column2Char(x.second)
-						<< "!=" << Number2Char(number);
+					ostr << ' ' << Row2Char(x.first) << Column2Char(x.second) << "!=" << Number2Char(number);
 				}
 				return ostr.str();
 			}
 			if (!column_elim.empty()) {
 				difficulty += 0x100;
 				ostringstream ostr;
-				ostr << "Locked Candidates (" << Number2Char(number)
-					<< " in Box " << box + 1 << "):";
+				ostr << "Locked Candidates (" << Number2Char(number) << " in Box " << box + 1 << "):";
 				for (auto &x: column_elim) {
 					Remove(x.first, x.second, number);
-					ostr << ' ' << Row2Char(x.first) << Column2Char(x.second)
-						<< "!=" << Number2Char(number);
+					ostr << ' ' << Row2Char(x.first) << Column2Char(x.second) << "!=" << Number2Char(number);
 				}
 				return ostr.str();
 			}
@@ -678,7 +659,7 @@ string Candidate::NakedPair(size_t pair_size) {
 	for (size_t box = 0; box < size; ++box) {
 		vector<size_t> num_available;
 		for (size_t number = 1; number <= size; ++number) {
-			if (box_count[box * size + number - 1] > 0) {
+			if (box_count[box][number - 1] > 0) {
 				num_available.push_back(number);
 			}
 		}
@@ -730,8 +711,7 @@ string Candidate::NakedPair(size_t pair_size) {
 					}
 					ostr << " in Box " << box + 1 << "):";
 					for (size_t cell: elim) {
-						ostr << ' ' << Row2Char(cell / size)
-							<< Column2Char(cell % size) << "!=";
+						ostr << ' ' << Row2Char(cell / size) << Column2Char(cell % size) << "!=";
 						for (size_t number: contain) {
 							if ((*this)(cell, number)) {
 								Remove(cell, number);
@@ -748,7 +728,7 @@ string Candidate::NakedPair(size_t pair_size) {
 	for (size_t row = 0; row < size; ++row) {
 		vector<size_t> num_available;
 		for (size_t number = 1; number <= size; ++number) {
-			if (row_count[row * size + number - 1] > 0) {
+			if (row_count[row][number - 1] > 0) {
 				num_available.push_back(number);
 			}
 		}
@@ -768,14 +748,12 @@ string Candidate::NakedPair(size_t pair_size) {
 			}
 			vector<bool> column(size, true);
 			size_t count = blank_size;
-			for (size_t i = 0; i < size; ++i) {
-				if (board[row * size + i] == 0) {
-					for (size_t number: not_contain) {
-						if ((*this)(row, i, number)) {
-							--count;
-							column[i] = false;
-							break;
-						}
+			for (size_t i = 0; i < size; ++i) if (board[row * size + i] == 0) {
+				for (size_t number: not_contain) {
+					if ((*this)(row, i, number)) {
+						--count;
+						column[i] = false;
+						break;
 					}
 				}
 			}
@@ -798,8 +776,7 @@ string Candidate::NakedPair(size_t pair_size) {
 					}
 					ostr << " in Row " << Row2Char(row) << "):";
 					for (size_t column: elim) {
-						ostr << ' ' << Row2Char(row) << Column2Char(column)
-							<< "!=";
+						ostr << ' ' << Row2Char(row) << Column2Char(column) << "!=";
 						for (size_t number: contain) {
 							if ((*this)(row, column, number)) {
 								Remove(row, column, number);
@@ -816,7 +793,7 @@ string Candidate::NakedPair(size_t pair_size) {
 	for (size_t column = 0; column < size; ++column) {
 		vector<size_t> num_available;
 		for (size_t number = 1; number <= size; ++number) {
-			if (column_count[column * size + number - 1] > 0) {
+			if (column_count[column][number - 1] > 0) {
 				num_available.push_back(number);
 			}
 		}
@@ -836,14 +813,12 @@ string Candidate::NakedPair(size_t pair_size) {
 			}
 			vector<bool> row(size, true);
 			size_t count = blank_size;
-			for (size_t i = 0; i < size; ++i) {
-				if (board[i * size + column] == 0) {
-					for (size_t number: not_contain) {
-						if ((*this)(i, column, number)) {
-							--count;
-							row[i] = false;
-							break;
-						}
+			for (size_t i = 0; i < size; ++i) if (board[i * size + column] == 0) {
+				for (size_t number: not_contain) {
+					if ((*this)(i, column, number)) {
+						--count;
+						row[i] = false;
+						break;
 					}
 				}
 			}
@@ -866,8 +841,7 @@ string Candidate::NakedPair(size_t pair_size) {
 					}
 					ostr << " in Column " << Column2Char(column) << "):";
 					for (size_t row: elim) {
-						ostr << ' ' << Row2Char(row) << Column2Char(column)
-							<< "!=";
+						ostr << ' ' << Row2Char(row) << Column2Char(column) << "!=";
 						for (size_t number: contain) {
 							if ((*this)(row, column, number)) {
 								Remove(row, column, number);
@@ -891,7 +865,7 @@ string Candidate::HiddenPair(size_t pair_size) {
 	for (size_t box = 0; box < size; ++box) {
 		vector<size_t> num_available;
 		for (size_t number = 1; number <= size; ++number) {
-			if (box_count[box * size + number - 1] > 0) {
+			if (box_count[box][number - 1] > 0) {
 				num_available.push_back(number);
 			}
 		}
@@ -941,8 +915,7 @@ string Candidate::HiddenPair(size_t pair_size) {
 					for (size_t k: elim) {
 						size_t row = r + k / n;
 						size_t column = c + k % n;
-						ostr << ' ' << Row2Char(row) << Column2Char(column)
-							<< "!=";
+						ostr << ' ' << Row2Char(row) << Column2Char(column) << "!=";
 						for (size_t number: not_contain) {
 							if ((*this)(row, column, number)) {
 								Remove(row, column, number);
@@ -959,7 +932,7 @@ string Candidate::HiddenPair(size_t pair_size) {
 	for (size_t row = 0; row < size; ++row) {
 		vector<size_t> num_available;
 		for (size_t number = 1; number <= size; ++number) {
-			if (row_count[row * size + number - 1] > 0) {
+			if (row_count[row][number - 1] > 0) {
 				num_available.push_back(number);
 			}
 		}
@@ -1005,8 +978,7 @@ string Candidate::HiddenPair(size_t pair_size) {
 					}
 					ostr << " in Row " << Row2Char(row) << "):";
 					for (size_t column: elim) {
-						ostr << ' ' << Row2Char(row) << Column2Char(column)
-							<< "!=";
+						ostr << ' ' << Row2Char(row) << Column2Char(column) << "!=";
 						for (size_t number: not_contain) {
 							if ((*this)(row, column, number)) {
 								Remove(row, column, number);
@@ -1023,7 +995,7 @@ string Candidate::HiddenPair(size_t pair_size) {
 	for (size_t column = 0; column < size; ++column) {
 		vector<size_t> num_available;
 		for (size_t number = 1; number <= size; ++number) {
-			if (column_count[column * size + number - 1] > 0) {
+			if (column_count[column][number - 1] > 0) {
 				num_available.push_back(number);
 			}
 		}
@@ -1069,8 +1041,7 @@ string Candidate::HiddenPair(size_t pair_size) {
 					}
 					ostr << " in Column " << Column2Char(column) << "):";
 					for (size_t row: elim) {
-						ostr << ' ' << Row2Char(row) << Column2Char(column)
-							<< "!=";
+						ostr << ' ' << Row2Char(row) << Column2Char(column) << "!=";
 						for (size_t number: not_contain) {
 							if ((*this)(row, column, number)) {
 								Remove(row, column, number);
@@ -1095,10 +1066,10 @@ string Candidate::Fish(size_t fish_size) {
 	for (size_t number = 1; number <= size; ++number) {
 		vector<size_t> row_available, column_available;
 		for (size_t i = 0; i < size; ++i) {
-			if (row_count[i * size + number - 1] > 0) {
+			if (row_count[i][number - 1] > 0) {
 				row_available.push_back(i);
 			}
-			if (column_count[i * size + number - 1] > 0) {
+			if (column_count[i][number - 1] > 0) {
 				column_available.push_back(i);
 			}
 		}
@@ -1134,12 +1105,10 @@ string Candidate::Fish(size_t fish_size) {
 			}
 			if (count == fish_size) {
 				vector<pair<size_t, size_t>> elim;
-				for (size_t column = 0; column < size; ++column) {
-					if (contain[column]) {
-						for (size_t i = 0; i < blank_size; ++i) if (!set[i]) {
-							if ((*this)(row_available[i], column, number)) {
-								elim.push_back(make_pair(row_available[i], column));
-							}
+				for (size_t column = 0; column < size; ++column) if (contain[column]) {
+					for (size_t i = 0; i < blank_size; ++i) if (!set[i]) {
+						if ((*this)(row_available[i], column, number)) {
+							elim.push_back(make_pair(row_available[i], column));
 						}
 					}
 				}
@@ -1153,8 +1122,7 @@ string Candidate::Fish(size_t fish_size) {
 					ostr << "):";
 					for (auto x: elim) {
 						Remove(x.first, x.second, number);
-						ostr << ' ' << Row2Char(x.first) << Column2Char(x.second)
-							<< "!=" << Number2Char(number);
+						ostr << ' ' << Row2Char(x.first) << Column2Char(x.second) << "!=" << Number2Char(number);
 					}
 					return ostr.str();
 				}
@@ -1191,8 +1159,7 @@ string Candidate::Fish(size_t fish_size) {
 					ostr << "):";
 					for (auto x: elim) {
 						Remove(x.first, x.second, number);
-						ostr << ' ' << Row2Char(x.first) << Column2Char(x.second)
-							<< "!=" << Number2Char(number);
+						ostr << ' ' << Row2Char(x.first) << Column2Char(x.second) << "!=" << Number2Char(number);
 					}
 					return ostr.str();
 				}
@@ -1207,7 +1174,7 @@ string Candidate::Skyscraper() {
 	for (size_t number = 1; number <= size; ++number) {
 		vector<pair<size_t, size_t>> rows;
 		for (size_t row = 0; row < size; ++row) {
-			if (row_count[row * size + number - 1] == 2) {
+			if (row_count[row][number - 1] == 2) {
 				size_t c = 0;
 				for (size_t column = 0; column < size; ++column) {
 					if ((*this)(row, column, number)) {
@@ -1232,15 +1199,13 @@ string Candidate::Skyscraper() {
 					size_t column22 = rows[r2].second % size;
 					vector<size_t> elim;
 					if (column11 == column21) {
-						for (size_t cell: CommonEffectCell(row1, column12,
-							row2, column22)) {
+						for (size_t cell: CommonEffectCell(row1, column12, row2, column22)) {
 							if ((*this)(cell, number)) {
 								elim.push_back(cell);
 							}
 						}
 					} else if (column12 == column22) {
-						for (size_t cell: CommonEffectCell(row1, column11,
-							row2, column21)) {
+						for (size_t cell: CommonEffectCell(row1, column11, row2, column21)) {
 							if ((*this)(cell, number)) {
 								elim.push_back(cell);
 							}
@@ -1249,14 +1214,10 @@ string Candidate::Skyscraper() {
 					if (!elim.empty()) {
 						difficulty += 1500;
 						ostringstream ostr;
-						ostr << "Skyscraper (" << Number2Char(number)
-							<< " in Row " << Row2Char(row1) << Row2Char(row2)
-							<< "):";
+						ostr << "Skyscraper (" << Number2Char(number) << " in Row " << Row2Char(row1) << Row2Char(row2) << "):";
 						for (size_t cell: elim) {
 							Remove(cell, number);
-							ostr << ' ' << Row2Char(cell / size)
-								<< Column2Char(cell % size) << "!="
-								<< Number2Char(number);
+							ostr << ' ' << Row2Char(cell / size) << Column2Char(cell % size) << "!=" << Number2Char(number);
 						}
 						return ostr.str();
 					}
@@ -1266,7 +1227,7 @@ string Candidate::Skyscraper() {
 
 		vector<pair<size_t, size_t>> columns;
 		for (size_t column = 0; column < size; ++column) {
-			if (column_count[column * size + number - 1] == 2) {
+			if (column_count[column][number - 1] == 2) {
 				size_t r = 0;
 				for (size_t row = 0; row < size; ++row) {
 					if ((*this)(row, column, number)) {
@@ -1291,15 +1252,13 @@ string Candidate::Skyscraper() {
 					size_t row22 = columns[c2].second % size;
 					vector<size_t> elim;
 					if (row11 == row21) {
-						for (size_t cell: CommonEffectCell(row12, column1,
-							row22, column2)) {
+						for (size_t cell: CommonEffectCell(row12, column1, row22, column2)) {
 							if ((*this)(cell, number)) {
 								elim.push_back(cell);
 							}
 						}
 					} else if (row12 == row22) {
-						for (size_t cell: CommonEffectCell(row11, column1,
-							row21, column2)) {
+						for (size_t cell: CommonEffectCell(row11, column1, row21, column2)) {
 							if ((*this)(cell, number)) {
 								elim.push_back(cell);
 							}
@@ -1308,14 +1267,10 @@ string Candidate::Skyscraper() {
 					if (!elim.empty()) {
 						difficulty += 1500;
 						ostringstream ostr;
-						ostr << "Skyscraper (" << Number2Char(number)
-							<< " in Column " << Column2Char(column1)
-							<< Column2Char(column2) << "):";
+						ostr << "Skyscraper (" << Number2Char(number) << " in Column " << Column2Char(column1) << Column2Char(column2) << "):";
 						for (size_t cell: elim) {
 							Remove(cell, number);
-							ostr << ' ' << Row2Char(cell / size)
-								<< Column2Char(cell % size) << "!="
-								<< Number2Char(number);
+							ostr << ' ' << Row2Char(cell / size) << Column2Char(cell % size) << "!=" << Number2Char(number);
 						}
 						return ostr.str();
 					}
@@ -1331,7 +1286,7 @@ string Candidate::_2StringKite() {
 	for (size_t number = 1; number <= size; ++number) {
 		vector<pair<size_t, size_t>> rows, columns;
 		for (size_t row = 0; row < size; ++row) {
-			if (row_count[row * size + number - 1] == 2) {
+			if (row_count[row][number - 1] == 2) {
 				size_t c = 0;
 				for (size_t column = 0; column < size; ++column) {
 					if ((*this)(row, column, number)) {
@@ -1342,7 +1297,7 @@ string Candidate::_2StringKite() {
 			}
 		}
 		for (size_t column = 0; column < size; ++column) {
-			if (column_count[column * size + number - 1] == 2) {
+			if (column_count[column][number - 1] == 2) {
 				size_t r = 0;
 				for (size_t row = 0; row < size; ++row) {
 					if ((*this)(row, column, number)) {
@@ -1368,12 +1323,8 @@ string Candidate::_2StringKite() {
 							Remove(row22, column12, number);
 							difficulty += 2000;
 							ostringstream ostr;
-							ostr << "2 String Kite (" << Number2Char(number)
-								<< " in Row " << Row2Char(row1)
-								<< " Column " << Column2Char(column2)
-								<< "): " << Row2Char(row22)
-								<< Column2Char(column12) << "!="
-								<< Number2Char(number);
+							ostr << "2 String Kite (" << Number2Char(number) << " in Row " << Row2Char(row1) << " Column " << Column2Char(column2)
+								<< "): " << Row2Char(row22) << Column2Char(column12) << "!=" << Number2Char(number);
 							return ostr.str();
 						}
 					} else if (column2 / n == column12 / n
@@ -1382,12 +1333,8 @@ string Candidate::_2StringKite() {
 							Remove(row22, column11, number);
 							difficulty += 0x2000;
 							ostringstream ostr;
-							ostr << "2 String Kite (" << Number2Char(number)
-								<< " in Row " << Row2Char(row1)
-								<< " Column " << Column2Char(column2)
-								<< "): " << Row2Char(row22)
-								<< Column2Char(column11) << "!="
-								<< Number2Char(number);
+							ostr << "2 String Kite (" << Number2Char(number) << " in Row " << Row2Char(row1) << " Column " << Column2Char(column2)
+								<< "): " << Row2Char(row22) << Column2Char(column11) << "!=" << Number2Char(number);
 							return ostr.str();
 						}
 					}
@@ -1397,12 +1344,8 @@ string Candidate::_2StringKite() {
 							Remove(row21, column12, number);
 							difficulty += 2000;
 							ostringstream ostr;
-							ostr << "2 String Kite (" << Number2Char(number)
-								<< " in Row " << Row2Char(row1)
-								<< " Column " << Column2Char(column2)
-								<< "): " << Row2Char(row21)
-								<< Column2Char(column12) << "!="
-								<< Number2Char(number);
+							ostr << "2 String Kite (" << Number2Char(number) << " in Row " << Row2Char(row1) << " Column " << Column2Char(column2)
+								<< "): " << Row2Char(row21) << Column2Char(column12) << "!=" << Number2Char(number);
 							return ostr.str();
 						}
 					} else if (column2 / n == column12 / n
@@ -1411,12 +1354,8 @@ string Candidate::_2StringKite() {
 							Remove(row21, column11, number);
 							difficulty += 2000;
 							ostringstream ostr;
-							ostr << "2 String Kite (" << Number2Char(number)
-								<< " in Row " << Row2Char(row1)
-								<< " Column " << Column2Char(column2)
-								<< "): " << Row2Char(row21)
-								<< Column2Char(column11) << "!="
-								<< Number2Char(number);
+							ostr << "2 String Kite (" << Number2Char(number) << " in Row " << Row2Char(row1) << " Column " << Column2Char(column2)
+								<< "): " << Row2Char(row21) << Column2Char(column11) << "!=" << Number2Char(number);
 							return ostr.str();
 						}
 					}
@@ -1432,7 +1371,7 @@ string Candidate::TurbotFish() {
 	for (size_t number = 1; number <= size; ++number) {
 		vector<pair<size_t, size_t>> boxes, rows, columns;
 		for (size_t box = 0; box < size; ++box) {
-			if (box_count[box * size + number - 1] == 2) {
+			if (box_count[box][number - 1] == 2) {
 				size_t c = 0;
 				for (size_t cell: box_index[box]) {
 					if ((*this)(cell, number)) {
@@ -1443,7 +1382,7 @@ string Candidate::TurbotFish() {
 			}
 		}
 		for (size_t row = 0; row < size; ++row) {
-			if (row_count[row * size + number - 1] == 2) {
+			if (row_count[row][number - 1] == 2) {
 				size_t c = 0;
 				for (size_t column = 0; column < size; ++column) {
 					if ((*this)(row, column, number)) {
@@ -1454,7 +1393,7 @@ string Candidate::TurbotFish() {
 			}
 		}
 		for (size_t column = 0; column < size; ++column) {
-			if (column_count[column * size + number - 1] == 2) {
+			if (column_count[column][number - 1] == 2) {
 				size_t r = 0;
 				for (size_t row = 0; row < size; ++row) {
 					if ((*this)(row, column, number)) {
@@ -1482,11 +1421,8 @@ string Candidate::TurbotFish() {
 							Remove(row12, column22, number);
 							difficulty += 2000;
 							ostringstream ostr;
-							ostr << "Turbot Fish (" << Number2Char(number)
-								<< " in Box " << boxes[b].first + 1
-								<< " and Row " << Row2Char(row2) << "): "
-								<< Row2Char(row12) << Column2Char(column22)
-								<< "!=" << Number2Char(number);
+							ostr << "Turbot Fish (" << Number2Char(number) << " in Box " << boxes[b].first + 1 << " and Row " << Row2Char(row2) << "): "
+								<< Row2Char(row12) << Column2Char(column22) << "!=" << Number2Char(number);
 							return ostr.str();
 						}
 					}
@@ -1496,11 +1432,8 @@ string Candidate::TurbotFish() {
 							Remove(row12, column21, number);
 							difficulty += 2000;
 							ostringstream ostr;
-							ostr << "Turbot Fish (" << Number2Char(number)
-								<< " in Box " << boxes[b].first + 1
-								<< " and Row " << Row2Char(row2) << "): "
-								<< Row2Char(row12) << Column2Char(column21)
-								<< "!=" << Number2Char(number);
+							ostr << "Turbot Fish (" << Number2Char(number) << " in Box " << boxes[b].first + 1 << " and Row " << Row2Char(row2) << "): "
+								<< Row2Char(row12) << Column2Char(column21) << "!=" << Number2Char(number);
 							return ostr.str();
 						}
 					}
@@ -1510,11 +1443,8 @@ string Candidate::TurbotFish() {
 							Remove(row11, column22, number);
 							difficulty += 2000;
 							ostringstream ostr;
-							ostr << "Turbot Fish (" << Number2Char(number)
-								<< " in Box " << boxes[b].first + 1
-								<< " and Row " << Row2Char(row2) << "): "
-								<< Row2Char(row11) << Column2Char(column22)
-								<< "!=" << Number2Char(number);
+							ostr << "Turbot Fish (" << Number2Char(number) << " in Box " << boxes[b].first + 1 << " and Row " << Row2Char(row2) << "): "
+								<< Row2Char(row11) << Column2Char(column22) << "!=" << Number2Char(number);
 							return ostr.str();
 						}
 					}
@@ -1524,11 +1454,8 @@ string Candidate::TurbotFish() {
 							Remove(row11, column21, number);
 							difficulty += 2000;
 							ostringstream ostr;
-							ostr << "Turbot Fish (" << Number2Char(number)
-								<< " in Box " << boxes[b].first + 1
-								<< " and Row " << Row2Char(row2) << "): "
-								<< Row2Char(row11) << Column2Char(column21)
-								<< "!=" << Number2Char(number);
+							ostr << "Turbot Fish (" << Number2Char(number) << " in Box " << boxes[b].first + 1 << " and Row " << Row2Char(row2) << "): "
+								<< Row2Char(row11) << Column2Char(column21) << "!=" << Number2Char(number);
 							return ostr.str();
 						}
 					}
@@ -1545,10 +1472,8 @@ string Candidate::TurbotFish() {
 							difficulty += 2000;
 							ostringstream ostr;
 							ostr << "Turbot Fish (" << Number2Char(number)
-								<< " in Box " << boxes[b].first + 1
-								<< " and Column " << Column2Char(column2) << "): "
-								<< Row2Char(row22) << Column2Char(column12)
-								<< "!=" << Number2Char(number);
+								<< " in Box " << boxes[b].first + 1 << " and Column " << Column2Char(column2) << "): "
+								<< Row2Char(row22) << Column2Char(column12) << "!=" << Number2Char(number);
 							return ostr.str();
 						}
 					}
@@ -1559,10 +1484,8 @@ string Candidate::TurbotFish() {
 							difficulty += 2000;
 							ostringstream ostr;
 							ostr << "Turbot Fish (" << Number2Char(number)
-								<< " in Box " << boxes[b].first + 1
-								<< " and Column " << Column2Char(column2) << "): "
-								<< Row2Char(row21) << Column2Char(column12)
-								<< "!=" << Number2Char(number);
+								<< " in Box " << boxes[b].first + 1 << " and Column " << Column2Char(column2) << "): "
+								<< Row2Char(row21) << Column2Char(column12) << "!=" << Number2Char(number);
 							return ostr.str();
 						}
 					}
@@ -1573,10 +1496,8 @@ string Candidate::TurbotFish() {
 							difficulty += 2000;
 							ostringstream ostr;
 							ostr << "Turbot Fish (" << Number2Char(number)
-								<< " in Box " << boxes[b].first + 1
-								<< " and Column " << Column2Char(column2) << "): "
-								<< Row2Char(row22) << Column2Char(column11)
-								<< "!=" << Number2Char(number);
+								<< " in Box " << boxes[b].first + 1 << " and Column " << Column2Char(column2) << "): "
+								<< Row2Char(row22) << Column2Char(column11) << "!=" << Number2Char(number);
 							return ostr.str();
 						}
 					}
@@ -1587,10 +1508,8 @@ string Candidate::TurbotFish() {
 							difficulty += 2000;
 							ostringstream ostr;
 							ostr << "Turbot Fish (" << Number2Char(number)
-								<< " in Box " << boxes[b].first
-								<< " and Column " << Column2Char(column2) << "): "
-								<< Row2Char(row21) << Column2Char(column11)
-								<< "!=" << Number2Char(number);
+								<< " in Box " << boxes[b].first << " and Column " << Column2Char(column2) << "): "
+								<< Row2Char(row21) << Column2Char(column11) << "!=" << Number2Char(number);
 							return ostr.str();
 						}
 					}
@@ -1606,7 +1525,7 @@ string Candidate::ForcingChain() {
 	unordered_map<size_t, vector<size_t>> original_strong_link;
 	for (size_t number = 1; number <= size; ++number) {
 		for (size_t box = 0; box < size; ++box) {
-			if (box_count[box * size + number - 1] == 2) {
+			if (box_count[box][number - 1] == 2) {
 				size_t c[2], count = 0;
 				for (size_t cell: box_index[box]) {
 					if ((*this)(cell, number)) {
@@ -1620,7 +1539,7 @@ string Candidate::ForcingChain() {
 			}
 		}
 		for (size_t row = 0; row < size; ++row) {
-			if (row_count[row * size + number - 1] == 2) {
+			if (row_count[row][number - 1] == 2) {
 				size_t c[2], count = 0;
 				for (size_t cell: row_index[row]) {
 					if ((*this)(cell, number)) {
@@ -1634,7 +1553,7 @@ string Candidate::ForcingChain() {
 			}
 		}
 		for (size_t column = 0; column < size; ++column) {
-			if (column_count[column * size + number - 1] == 2) {
+			if (column_count[column][number - 1] == 2) {
 				size_t c[2], count = 0;
 				for (size_t cell: column_index[column]) {
 					if ((*this)(cell, number)) {
@@ -1662,24 +1581,22 @@ string Candidate::ForcingChain() {
 			original_strong_link[key2] = {c[1], c[0]};
 		}
 	}
-	deque<unordered_map<size_t, vector<size_t>>> strong_link(1,
-		original_strong_link);
+	deque<unordered_map<size_t, vector<size_t>>> strong_link(1, original_strong_link);
 
 	bool ok = true;
 	while (ok) {
 		ok = false;
 		unordered_map<size_t, vector<size_t>> link;
 		size_t original_size = strong_link.size();
-		for (size_t d1 = 0; d1 <= (original_size - 1) / 2; ++d1) {
-			for (const auto &link1: strong_link[d1]) {
+		for (size_t d = 0; d <= (original_size - 1) / 2; ++d) {
+			for (const auto &link1: strong_link[d]) {
 				size_t num11 = link1.first / (size * size * size);
 				size_t num12 = link1.first % (size * size * size);
 				const vector<size_t> &l1 = link1.second;
 				if (num11 > num12) {
 					continue;
 				}
-				size_t d2 = original_size - d1 - 1;
-				for (const auto &link2: strong_link[d2]) {
+				for (const auto &link2: strong_link[original_size - d - 1]) {
 					size_t num21 = link2.first / (size * size * size);
 					size_t num22 = link2.first % (size * size * size);
 					const vector<size_t> &l2 = link2.second;
@@ -1694,8 +1611,7 @@ string Candidate::ForcingChain() {
 						size_t key1 = num12 * size * size * size + num22;
 						size_t key2 = num22 * size * size * size + num12;
 						bool found = false;
-						for (size_t depth = 0; depth < strong_link.size();
-							++depth) {
+						for (size_t depth = 0; depth < strong_link.size(); ++depth) {
 							const auto &m = strong_link[depth];
 							if (m.find(key1) != m.cend()) {
 								found = true;
@@ -1704,12 +1620,10 @@ string Candidate::ForcingChain() {
 						}
 						if (!found) {
 							vector<size_t> new_vector1(l1.crbegin(), l1.crend());
-							new_vector1.insert(new_vector1.end(),
-								l2.cbegin(), l2.cend());
+							new_vector1.insert(new_vector1.end(), l2.cbegin(), l2.cend());
 							link[key1] = new_vector1;
 							vector<size_t> new_vector2(l2.crbegin(), l2.crend());
-							new_vector2.insert(new_vector2.end(),
-								l1.cbegin(), l1.cend());
+							new_vector2.insert(new_vector2.end(), l1.cbegin(), l1.cend());
 							link[key2] = new_vector2;
 							if (!ok) {
 								ok = true;
@@ -1718,8 +1632,7 @@ string Candidate::ForcingChain() {
 								(strong_link.back())[key1] = new_vector1;
 								(strong_link.back())[key2] = new_vector2;
 							}
-							vector<size_t> common_effect_cell
-								= CommonEffectCell(num12, num22);
+							vector<size_t> common_effect_cell = CommonEffectCell(num12, num22);
 							vector<size_t> elim;
 							for (size_t cell: common_effect_cell) {
 								if ((*this)(cell)) {
@@ -1731,9 +1644,7 @@ string Candidate::ForcingChain() {
 								PrintChain(ostr, new_vector1);
 								for (size_t cell: elim) {
 									Remove(cell);
-									ostr << ' '
-										<< Row2Char(cell / (size * size))
-										<< Column2Char(cell / size % size)
+									ostr << ' ' << Row2Char(cell / (size * size)) << Column2Char(cell / size % size)
 										<< "!=" << Number2Char(cell % size + 1);
 								}
 								return ostr.str();
@@ -1743,8 +1654,7 @@ string Candidate::ForcingChain() {
 						size_t key1 = num12 * size * size * size + num21;
 						size_t key2 = num21 * size * size * size + num12;
 						bool found = false;
-						for (size_t depth = 0; depth < strong_link.size();
-							++depth) {
+						for (size_t depth = 0; depth < strong_link.size(); ++depth) {
 							const auto &m = strong_link[depth];
 							if (m.find(key1) != m.cend()) {
 								found = true;
@@ -1753,12 +1663,10 @@ string Candidate::ForcingChain() {
 						}
 						if (!found) {
 							vector<size_t> new_vector1(l1.crbegin(), l1.crend());
-							new_vector1.insert(new_vector1.end(),
-								l2.crbegin(), l2.crend());
+							new_vector1.insert(new_vector1.end(), l2.crbegin(), l2.crend());
 							link[key1] = new_vector1;
 							vector<size_t> new_vector2 = l2;
-							new_vector2.insert(new_vector2.end(),
-								l1.cbegin(), l1.cend());
+							new_vector2.insert(new_vector2.end(), l1.cbegin(), l1.cend());
 							link[key2] = new_vector2;
 							if (!ok) {
 								ok = true;
@@ -1767,8 +1675,7 @@ string Candidate::ForcingChain() {
 								(strong_link.back())[key1] = new_vector1;
 								(strong_link.back())[key2] = new_vector2;
 							}
-							vector<size_t> common_effect_cell
-								= CommonEffectCell(num12, num21);
+							vector<size_t> common_effect_cell = CommonEffectCell(num12, num21);
 							vector<size_t> elim;
 							for (size_t cell: common_effect_cell) {
 								if ((*this)(cell)) {
@@ -1780,9 +1687,7 @@ string Candidate::ForcingChain() {
 								PrintChain(ostr, new_vector1);
 								for (size_t cell: elim) {
 									Remove(cell);
-									ostr << ' '
-										<< Row2Char(cell / (size * size))
-										<< Column2Char(cell / size % size)
+									ostr << ' ' << Row2Char(cell / (size * size)) << Column2Char(cell / size % size)
 										<< "!=" << Number2Char(cell % size + 1);
 								}
 								return ostr.str();
@@ -1792,8 +1697,7 @@ string Candidate::ForcingChain() {
 						size_t key1 = num11 * size * size * size + num22;
 						size_t key2 = num22 * size * size * size + num11;
 						bool found = false;
-						for (size_t depth = 0; depth < strong_link.size();
-							++depth) {
+						for (size_t depth = 0; depth < strong_link.size(); ++depth) {
 							const auto &m = strong_link[depth];
 							if (m.find(key1) != m.cend()) {
 								found = true;
@@ -1802,12 +1706,10 @@ string Candidate::ForcingChain() {
 						}
 						if (!found) {
 							vector<size_t> new_vector1(l1);
-							new_vector1.insert(new_vector1.end(),
-								l2.cbegin(), l2.cend());
+							new_vector1.insert(new_vector1.end(), l2.cbegin(), l2.cend());
 							link[key1] = new_vector1;
 							vector<size_t> new_vector2(l2.crbegin(), l2.crend());
-							new_vector2.insert(new_vector2.end(),
-								l1.crbegin(), l1.crend());
+							new_vector2.insert(new_vector2.end(), l1.crbegin(), l1.crend());
 							link[key2] = new_vector2;
 							if (!ok) {
 								ok = true;
@@ -1829,9 +1731,7 @@ string Candidate::ForcingChain() {
 								PrintChain(ostr, new_vector1);
 								for (size_t cell: elim) {
 									Remove(cell);
-									ostr << ' '
-										<< Row2Char(cell / (size * size))
-										<< Column2Char(cell / size % size)
+									ostr << ' ' << Row2Char(cell / (size * size)) << Column2Char(cell / size % size)
 										<< "!=" << Number2Char(cell % size + 1);
 								}
 								return ostr.str();
@@ -1841,8 +1741,7 @@ string Candidate::ForcingChain() {
 						size_t key1 = num11 * size * size * size + num21;
 						size_t key2 = num21 * size * size * size + num11;
 						bool found = false;
-						for (size_t depth = 0; depth < strong_link.size();
-							++depth) {
+						for (size_t depth = 0; depth < strong_link.size(); ++depth) {
 							const auto &m = strong_link[depth];
 							if (m.find(key1) != m.cend()) {
 								found = true;
@@ -1851,12 +1750,10 @@ string Candidate::ForcingChain() {
 						}
 						if (!found) {
 							vector<size_t> new_vector1(l1);
-							new_vector1.insert(new_vector1.end(),
-								l2.crbegin(), l2.crend());
+							new_vector1.insert(new_vector1.end(), l2.crbegin(), l2.crend());
 							link[key1] = new_vector1;
 							vector<size_t> new_vector2(l2);
-							new_vector2.insert(new_vector2.end(),
-								l1.crbegin(), l1.crend());
+							new_vector2.insert(new_vector2.end(), l1.crbegin(), l1.crend());
 							link[key2] = new_vector2;
 							if (!ok) {
 								ok = true;
@@ -1865,8 +1762,7 @@ string Candidate::ForcingChain() {
 								(strong_link.back())[key1] = new_vector1;
 								(strong_link.back())[key2] = new_vector2;
 							}
-							vector<size_t> common_effect_cell
-								= CommonEffectCell(num11, num21);
+							vector<size_t> common_effect_cell = CommonEffectCell(num11, num21);
 							vector<size_t> elim;
 							for (size_t cell: common_effect_cell) {
 								if ((*this)(cell)) {
@@ -1878,9 +1774,7 @@ string Candidate::ForcingChain() {
 								PrintChain(ostr, new_vector1);
 								for (size_t cell: elim) {
 									Remove(cell);
-									ostr << ' '
-										<< Row2Char(cell / (size * size))
-										<< Column2Char(cell / size % size)
+									ostr << ' ' << Row2Char(cell / (size * size)) << Column2Char(cell / size % size)
 										<< "!=" << Number2Char(cell % size + 1);
 								}
 								return ostr.str();
