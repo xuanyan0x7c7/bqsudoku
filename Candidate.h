@@ -22,29 +22,31 @@ public:
 public:
 	Candidate(const Sudoku&);
 private:
-	static constexpr int ChainType_XChain = 0;
-	static constexpr int ChainType_XYChain = 1;
-	static constexpr int ChainType_AIC = 2;
+	static constexpr size_t ChainType_XChain = 0;
+	static constexpr size_t ChainType_XYChain = 1;
+	static constexpr size_t ChainType_GroupedXChain = 2;
+	static constexpr size_t ChainType_AIC = 3;
+	static constexpr size_t ChainType_GroupedAIC = 4;
 private:
 	inline std::vector<bool>::reference operator()(std::size_t);
 	inline std::vector<bool>::reference operator()(std::size_t, std::size_t);
 	inline std::vector<bool>::reference operator()(std::size_t, std::size_t, std::size_t);
-	inline bool operator()(std::size_t) const;
-	inline bool operator()(std::size_t, std::size_t) const;
-	inline bool operator()(std::size_t, std::size_t, std::size_t) const;
 	void Fill(std::size_t, std::size_t);
 	void Fill(std::size_t, std::size_t, std::size_t);
 	void Remove(std::size_t);
 	void Remove(std::size_t, std::size_t);
 	void Remove(std::size_t, std::size_t, std::size_t);
 private:
-	std::vector<std::size_t> CommonEffectCell(std::size_t, std::size_t);
-	std::vector<std::size_t> CommonEffectCell(std::size_t, std::size_t, std::size_t, std::size_t);
-	std::vector<std::size_t> CommonEffectCell(std::size_t, std::size_t, std::size_t, std::size_t, std::size_t, std::size_t);
-	bool IsWeakChain(std::size_t, std::size_t);
-	bool IsWeakChain(std::size_t, std::size_t, std::size_t, std::size_t, std::size_t, std::size_t);
-	int ChainType(const std::vector<size_t>&) const;
-	void PrintChain(std::ostream&, const std::vector<size_t>&);
+	typedef std::vector<std::size_t> Group;
+	std::vector<std::size_t> CommonEffectCell(std::size_t, std::size_t) const;
+	std::vector<std::size_t> CommonEffectCell(std::size_t, std::size_t, std::size_t, std::size_t) const;
+	std::vector<std::size_t> CommonEffectCell(std::size_t, std::size_t, std::size_t, std::size_t, std::size_t, std::size_t) const;
+	std::vector<std::size_t> CommonEffectCell(const Group&, const Group&) const;
+	bool IsWeakChain(std::size_t, std::size_t) const;
+	bool IsWeakChain(std::size_t, std::size_t, std::size_t, std::size_t, std::size_t, std::size_t) const;
+	bool IsWeakChain(const Group&, const Group&) const;
+	size_t ChainType(const std::vector<Group>&) const;
+	void PrintChain(std::ostream&, const std::vector<Group>&);
 public:
 	std::string FindNext();
 	inline int Difficulty() const;
@@ -59,7 +61,7 @@ private:
 	std::string Skyscraper();
 	std::string _2StringKite();
 	std::string TurbotFish();
-	std::string ForcingChain();
+	std::string GroupedForcingChain();
 };
 
 inline std::vector<bool>::reference Candidate::operator()(std::size_t number) {
@@ -71,18 +73,6 @@ inline std::vector<bool>::reference Candidate::operator()(std::size_t index, std
 }
 
 inline std::vector<bool>::reference Candidate::operator()(std::size_t row, std::size_t column, std::size_t number) {
-	return candidate[row * size + column][number - 1];
-}
-
-inline bool Candidate::operator()(std::size_t number) const {
-	return candidate[number / size][number % size];
-}
-
-inline bool Candidate::operator()(std::size_t index, std::size_t number) const {
-	return candidate[index][number - 1];
-}
-
-inline bool Candidate::operator()(std::size_t row, std::size_t column, std::size_t number) const {
 	return candidate[row * size + column][number - 1];
 }
 
