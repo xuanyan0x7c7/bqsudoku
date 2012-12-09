@@ -1,4 +1,5 @@
 #pragma once
+#include <deque>
 #include <vector>
 #include "Sudoku.h"
 
@@ -19,13 +20,13 @@ private:
 	std::vector<bool> row_choose;
 	const bool check_uniqueness;
 public:
-	std::vector<Sudoku> answer;
+	std::deque<Sudoku> answer;
 	unsigned long long answer_count;
 public:
 	BruteForceSolver(const BruteForceSolver&);
 	BruteForceSolver(BruteForceSolver&&);
-	BruteForceSolver& operator=(const BruteForceSolver&);
-	BruteForceSolver& operator=(BruteForceSolver&&);
+	BruteForceSolver& operator =(const BruteForceSolver&);
+	BruteForceSolver& operator =(BruteForceSolver&&);
 	~BruteForceSolver();
 public:
 	BruteForceSolver(const Sudoku&, bool check_uniqueness = false);
@@ -35,5 +36,5 @@ private:
 	void Search(int);
 	void AnswerFound();
 public:
-	void operator()();
+	void operator ()();
 };

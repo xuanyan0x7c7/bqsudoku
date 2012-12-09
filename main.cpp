@@ -29,14 +29,20 @@ int main(int argc, char **argv) {
 			ifstream fin(argv[2]);
 			fin >> l >> m >> n >> str;
 		}
-		Sudoku sudoku(m, n, str);
-		cout << sudoku << endl;
-		if (strcmp(argv[1], "--check") == 0 || strcmp(argv[1], "-c") == 0) {
-			CheckUniqueness(sudoku);
-		} else if (strcmp(argv[1], "--brute-force") == 0 || strcmp(argv[1], "-b") == 0) {
-			BruteForce(sudoku);
-		} else if (strcmp(argv[1], "--step-by-step") == 0 || strcmp(argv[1], "-s") == 0) {
-			StepByStep(sudoku);
+		if (l != m * n) {
+			cerr << "Sudoku size does not match" << endl;
+		} else if (str.length() != l * l) {
+			cerr << "String length does not match" << endl;
+		} else {
+			Sudoku sudoku(m, n, str);
+			cout << sudoku << endl;
+			if (strcmp(argv[1], "--check") == 0 || strcmp(argv[1], "-c") == 0) {
+				CheckUniqueness(sudoku);
+			} else if (strcmp(argv[1], "--brute-force") == 0 || strcmp(argv[1], "-b") == 0) {
+				BruteForce(sudoku);
+			} else if (strcmp(argv[1], "--step-by-step") == 0 || strcmp(argv[1], "-s") == 0) {
+				StepByStep(sudoku);
+			}
 		}
 	}
 	return 0;
@@ -68,10 +74,20 @@ void BruteForce(const Sudoku &sudoku) {
 
 void StepByStep(const Sudoku &sudoku) {
 	Candidate sbssudoku(sudoku);
+	bool newline = false;
 	while (!sbssudoku.Solved()) {
-		string str = sbssudoku.FindNext();
-		if (!str.empty()) {
-			cout << endl << str << endl << sbssudoku << endl;
+		auto hint = sbssudoku.GetHint();
+		if (!hint.first.empty()) {
+			if (!newline) {
+				cout << endl;
+			}
+			if (hint.second) {
+				cout << hint.first << endl << sbssudoku << endl;
+				newline = false;
+			} else {
+				newline = true;
+				cout << hint.first << endl;
+			}
 		} else {
 			break;
 		}

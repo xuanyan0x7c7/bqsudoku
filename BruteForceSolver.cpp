@@ -3,10 +3,10 @@ using std::size_t;
 using std::vector;
 
 
-BruteForceSolver::BruteForceSolver(const BruteForceSolver&) = delete;
-BruteForceSolver::BruteForceSolver(BruteForceSolver&&) = delete;
-BruteForceSolver& BruteForceSolver::operator=(const BruteForceSolver&) = delete;
-BruteForceSolver& BruteForceSolver::operator=(BruteForceSolver&&) = delete;
+BruteForceSolver::BruteForceSolver(const BruteForceSolver&) = default;
+BruteForceSolver::BruteForceSolver(BruteForceSolver&&) = default;
+BruteForceSolver& BruteForceSolver::operator =(const BruteForceSolver&) = delete;
+BruteForceSolver& BruteForceSolver::operator =(BruteForceSolver&&) = delete;
 
 BruteForceSolver::~BruteForceSolver() {
 	delete head;
@@ -154,7 +154,7 @@ void BruteForceSolver::Search(int depth) {
 	Resume(column);
 }
 
-void BruteForceSolver::operator()() {
+void BruteForceSolver::operator ()() {
 	for (size_t i = 0; i < size; ++i) {
 		for (size_t j = 0; j < size; ++j) {
 			size_t number = board[i * size + j];

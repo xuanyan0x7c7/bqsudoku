@@ -8,13 +8,13 @@ using std::vector;
 
 Sudoku::Sudoku(const Sudoku&) = default;
 Sudoku::Sudoku(Sudoku&&) = default;
-Sudoku& Sudoku::operator=(const Sudoku&) = delete;
-Sudoku& Sudoku::operator=(Sudoku&&) = delete;
+Sudoku& Sudoku::operator =(const Sudoku&) = delete;
+Sudoku& Sudoku::operator =(Sudoku&&) = delete;
 Sudoku::~Sudoku() = default;
 
 Sudoku::Sudoku(): Sudoku(3, 3) {}
 Sudoku::Sudoku(size_t n): Sudoku(n, n) {}
-Sudoku::Sudoku(size_t m, size_t n): m(m), n(n), size(m * n), board(size * size), given(size * size) {}
+Sudoku::Sudoku(size_t m, size_t n): SudokuBase(m, n), board(size * size), given(size * size) {}
 Sudoku::Sudoku(size_t n, const string &str): Sudoku(n, n, str) {}
 
 Sudoku::Sudoku(size_t m, size_t n, const string &str): Sudoku(m, n) {
@@ -39,29 +39,7 @@ bool Sudoku::Solved() const {
 	return true;
 }
 
-char Sudoku::Row2Char(size_t row) const {
-	return static_cast<char>('A' + row);
-}
-
-char Sudoku::Column2Char(size_t column) const {
-	if (size <= 9) {
-		return static_cast<char>(column + '1');
-	} else {
-		return static_cast<char>('a' + column);
-	}
-}
-
-char Sudoku::Number2Char(size_t number) const {
-	if (number == 0) {
-		return '.';
-	} else if (size <= 9) {
-		return static_cast<char>(number + '0');
-	} else {
-		return static_cast<char>('A' + number - 1);
-	}
-}
-
-ostream& operator<<(ostream &ostr, const Sudoku &sudoku) {
+ostream& operator <<(ostream &ostr, const Sudoku &sudoku) {
 	size_t m = sudoku.m;
 	size_t n = sudoku.n;
 	for (size_t i = 0; i < n; ++i) {

@@ -2,19 +2,18 @@
 #include <ostream>
 #include <string>
 #include <vector>
+#include "SudokuBase.h"
 
 
-class Sudoku {
+class Sudoku: protected SudokuBase {
 protected:
-	const std::size_t m, n;
-	const std::size_t size;
 	std::vector<size_t> board;
 	std::vector<bool> given;
 public:
 	Sudoku(const Sudoku&);
 	Sudoku(Sudoku&&);
-	Sudoku& operator=(const Sudoku&);
-	Sudoku& operator=(Sudoku&&);
+	Sudoku& operator =(const Sudoku&);
+	Sudoku& operator =(Sudoku&&);
 	~Sudoku();
 public:
 	Sudoku();
@@ -24,21 +23,16 @@ public:
 	Sudoku(std::size_t, std::size_t, const std::string&);
 public:
 	bool Solved() const;
-protected:
-	char Row2Char(std::size_t) const;
-	char Column2Char(std::size_t) const;
-	char Number2Char(std::size_t) const;
 public:
-	inline std::size_t& operator()(std::size_t, std::size_t);
-	inline std::size_t operator()(std::size_t, std::size_t) const;
-	friend std::ostream& operator<<(std::ostream&, const Sudoku&);
+	inline std::size_t& operator ()(std::size_t, std::size_t);
+	inline std::size_t operator ()(std::size_t, std::size_t) const;
+	friend std::ostream& operator <<(std::ostream&, const Sudoku&);
 };
 
-inline std::size_t& Sudoku::operator()(std::size_t row, std::size_t column) {
+inline std::size_t& Sudoku::operator ()(std::size_t row, std::size_t column) {
 	return board[row * size + column];
 }
 
-inline std::size_t
-Sudoku::operator()(std::size_t row, std::size_t column) const {
+inline std::size_t Sudoku::operator ()(std::size_t row, std::size_t column) const {
 	return board[row * size + column];
 }
