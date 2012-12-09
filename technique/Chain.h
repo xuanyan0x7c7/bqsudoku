@@ -12,7 +12,7 @@ public:
 public:
 	Chain(Candidate&);
 private:
-	enum ChainType {
+	enum struct ChainType {
 		XChain, NiceXLoop, XYChain, AIC, NiceLoop, GroupedXChain, GroupedNiceXLoop, GroupedAIC, GroupedNiceLoop
 	};
 	typedef std::vector<std::size_t> Group;
