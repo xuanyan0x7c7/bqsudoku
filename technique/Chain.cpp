@@ -1,0 +1,1223 @@
+#include <algorithm>
+#include <deque>
+#include <functional>
+#include <set>
+#include <sstream>
+#include <unordered_map>
+#include "Chain.h"
+using std::deque;
+using std::hash;
+using std::make_pair;
+using std::ostringstream;
+using std::pair;
+using std::set;
+using std::size_t;
+using std::sort;
+using std::string;
+using std::unordered_map;
+using std::vector;
+
+
+Chain::Chain(const Chain&) = default;
+Chain::Chain(Chain&&) = default;
+Chain& Chain::operator =(const Chain&) = delete;
+Chain& Chain::operator =(Chain&&) = delete;
+Chain::~Chain() = default;
+
+Chain::Chain(Candidate &sudoku): Technique(sudoku) {}
+
+namespace {
+	int Log2(int n) {
+		int k = 0;
+		while (n > 1) {
+			n >>= 1;
+			++k;
+		}
+		return k;
+	}
+}
+
+namespace std {
+	template <> struct hash<pair<Chain::Group, Chain::Group>> {
+		size_t operator()(const pair<vector<size_t>, vector<size_t>> &p) const {
+			static constexpr size_t seed = 13131;
+			size_t h = 0;
+			for (size_t n: p.first) {
+				h = h * seed + n;
+			}
+			for (size_t n: p.second) {
+				h = h * seed + n;
+			}
+			return h;
+		}
+	};
+}
+
+vector<size_t> Chain::CommonEffectCell(size_t r1, size_t c1, size_t r2, size_t c2) const {
+	vector<size_t> vec;
+	if (r1 == r2) {
+		if (c1 == c2) {
+			set<size_t> s;
+			for (size_t cell: row_index[r1]) {
+				s.insert(cell);
+			}
+			for (size_t cell: column_index[c1]) {
+				s.insert(cell);
+			}
+			for (size_t cell: box_index[r1 / m * m + c1 / n]) {
+				s.insert(cell);
+			}
+			s.erase(r1 * size + c1);
+			for (size_t cell: s) {
+				vec.push_back(cell);
+			}
+		} else {
+			for (size_t column = 0; column < size; ++column) {
+				if (column != c1 && column != c2) {
+					vec.push_back(r1 * size + column);
+				}
+			}
+		}
+	} else if (c1 == c2) {
+		for (size_t row = 0; row < size; ++row) {
+			if (row != r1 && row != r2) {
+				vec.push_back(row * size + c1);
+			}
+		}
+	} else if (r1 / m == r2 / m) {
+		if (c1 / n == c2 / n) {
+			for (size_t cell: box_index[r1 / m * m + c1 / n]) {
+				if ((!row_contain[r1][cell] || !column_contain[c1][cell]) && (!row_contain[r2][cell] || !column_contain[c2][cell])) {
+					vec.push_back(cell);
+				}
+			}
+		} else {
+			for (size_t c = 0; c < n; ++c) {
+				vec.push_back(r1 * size + (c2 / n * n + c));
+				vec.push_back(r2 * size + (c1 / n * n + c));
+			}
+		}
+	} else if (c1 / n == c2 / n) {
+		for (size_t r = 0; r < m; ++r) {
+			vec.push_back((r1 / m * m + r) * size + c2);
+			vec.push_back((r2 / m * m + r) * size + c1);
+		}
+	} else {
+		vec.push_back(r1 * size + c2);
+		vec.push_back(r2 * size + c1);
+	}
+
+	sort(vec.begin(), vec.end());
+	return vec;
+}
+
+vector<size_t> Chain::CommonEffectCell(size_t r1, size_t c1, size_t n1, size_t r2, size_t c2, size_t n2) const {
+	vector<size_t> vec;
+	if (n1 == n2) {
+		vec = CommonEffectCell(r1, c1, r2, c2);
+		for (size_t &cell: vec) {
+			cell = cell * size + n1 - 1;
+		}
+	} else if (r1 == r2 && c1 == c2) {
+		for (size_t number = 1; number <= size; ++number) {
+			if (number != n1 && number != n2) {
+				vec.push_back((r1 * size + c1) * size + number - 1);
+			}
+		}
+	} else if (weak_chain[r1 * size * size + c1 * size][r2 * size * size + c2 * size]) {
+		vec.push_back((r1 * size + c1) * size + n2 - 1);
+		vec.push_back((r2 * size + c2) * size + n1 - 1);
+		sort(vec.begin(), vec.end());
+	}
+
+	return vec;
+}
+
+vector<size_t> Chain::CommonEffectCell(const Group &g1, const Group &g2) const {
+	vector<size_t> final_vec;
+	vector<size_t> vec = CommonEffectCell(g1.front(), g2.front());
+	for (size_t cell: vec) {
+		bool ok = true;
+		for (size_t c: g1) {
+			if (!weak_chain[cell][c]) {
+				ok = false;
+				break;
+			}
+		}
+		if (!ok) {
+			continue;
+		}
+		for (size_t c: g2) {
+			if (!weak_chain[cell][c]) {
+				ok = false;
+				break;
+			}
+		}
+		if (ok) {
+			final_vec.push_back(cell);
+		}
+	}
+	return final_vec;
+}
+
+bool Chain::IsWeakChain(const Group &g1, const Group &g2) const {
+	for (size_t c1: g1) for (size_t c2: g2) {
+		if (!weak_chain[c1][c2]) {
+			return false;
+		}
+	}
+	return true;
+}
+
+Chain::ChainType Chain::GetChainType(const vector<Group> &chain) const {
+	bool is_grouped = false;
+	for (const Group &group: chain) {
+		if (group.size() > 1) {
+			is_grouped = true;
+			break;
+		}
+	}
+	bool is_xchain = true;
+	for (const Group &group: chain) {
+		if (group.front() % size != chain.front().front() % size) {
+			is_xchain = false;
+			break;
+		}
+	}
+	bool is_niceloop = chain.front() == chain.back();
+	if (is_grouped) {
+		return is_niceloop ? (is_xchain ? GroupedNiceXLoop : GroupedNiceLoop) : (is_xchain ? GroupedXChain : GroupedAIC);
+	} else {
+		if (is_xchain) {
+			return is_niceloop ? XChain : NiceXLoop;
+		}
+		bool is_xychain = true;
+		for (auto iter = chain.cbegin(); iter != chain.cend(); iter += 2) {
+			if (iter->front() / size != (iter + 1)->front() / size) {
+				is_xychain = false;
+				break;
+			}
+		}
+		return is_xychain ? XYChain : (is_niceloop ? NiceLoop : AIC);
+	}
+}
+
+string Chain::Chain2String(const vector<Group> &chain) {
+	ostringstream ostr;
+	size_t number;
+	bool is_strong_link = true;
+	switch (GetChainType(chain)) {
+	case XChain:
+		difficulty += 1500 + 100 * Log2(chain.size() - 2);
+		ostr << "X-Chain (";
+		number = chain.front().front() % size + 1;
+		ostr << Number2Char(number) << " of ";
+		for (const Group &group: chain) {
+			size_t num = group.front();
+			is_strong_link = !is_strong_link;
+			if (num != chain.front().front()) {
+				ostr << (is_strong_link ? "==" : "--");
+			}
+			ostr << Row2Char(num / (size * size)) << Column2Char(num / size % size);
+		}
+		ostr << "):";
+		break;
+	case NiceXLoop: 
+		difficulty += 1500 + 100 * Log2(chain.size() - 4);
+		ostr << "Nice X-Loop (";
+		number = chain.front().front() % size + 1;
+		ostr << Number2Char(number) << " of ";
+		for (const Group &group: chain) {
+			size_t num = group.front();
+			is_strong_link = !is_strong_link;
+			if (num != chain.front().front()) {
+				ostr << (is_strong_link ? "==" : "--");
+			}
+			ostr << Row2Char(num / (size * size)) << Column2Char(num / size % size);
+		}
+		ostr << "):";
+		break;
+	case XYChain:
+		difficulty += 1500 + 100 * Log2(chain.size() - 4);
+		ostr << "XY-" << (chain.size() == 6 ? "Wing" : "Chain") << " (";
+		for (auto iter = chain.cbegin(); iter != chain.cend(); ++iter) {
+			if (iter != chain.cbegin()) {
+				ostr << "--";
+			}
+			size_t num = iter->front();
+			ostr << Row2Char(num / (size * size)) << Column2Char(num / size % size) << '(' << Number2Char(num % size + 1) << "==";
+			ostr << Number2Char((++iter)->front() % size + 1) << ')';
+		}
+		ostr << "):";
+		break;
+	case AIC:
+		difficulty += 2000 + 200 * Log2(chain.size());
+		if (chain.front().front() % size != chain.back().front() % size) {
+			difficulty += 500;
+		}
+		ostr << "AIC (";
+		for (const Group &group: chain) {
+			size_t num = group.front();
+			is_strong_link = !is_strong_link;
+			if (num != chain.front().front()) {
+				ostr << (is_strong_link ? "==" : "--");
+			}
+			ostr << Row2Char(num / (size * size)) << Column2Char(num / size % size) << '(' << Number2Char(num % size + 1) << ')';
+		}
+		ostr << "):";
+		break;
+	case NiceLoop:
+		difficulty += 2000 + 200 * Log2(chain.size() - 2);
+		if (chain.front().front() % size != chain.back().front() % size) {
+			difficulty += 500;
+		}
+		ostr << "Nice Loop (";
+		for (const Group &group: chain) {
+			size_t num = group.front();
+			is_strong_link = !is_strong_link;
+			if (num != chain.front().front()) {
+				ostr << (is_strong_link ? "==" : "--");
+			}
+			ostr << Row2Char(num / (size * size)) << Column2Char(num / size % size) << '(' << Number2Char(num % size + 1) << ')';
+		}
+		ostr << "):";
+		break;
+	case GroupedXChain:
+		difficulty += 1500 + 150 * Log2(chain.size() - 2);
+		ostr << "Grouped X-Chain (";
+		number = chain.front().front() % size + 1;
+		ostr << Number2Char(number) << " of ";
+		for (const Group &group: chain) {
+			is_strong_link = !is_strong_link;
+			if (group.front() != chain.front().front()) {
+				ostr << (is_strong_link ? "==" : "--");
+			}
+			if (group.size() == 1) {
+				ostr << Row2Char(group.front() / (size * size)) << Column2Char(group.front() / size % size);
+			} else if (group.front() / (size * size) == group.back() / (size * size)) {
+				ostr << Row2Char(group.front() / (size * size));
+				for (size_t num: group) {
+					ostr << Column2Char(num / size % size);
+				}
+			} else {
+				for (size_t num: group) {
+					ostr << Row2Char(num / (size * size));
+				}
+				ostr << Column2Char(group.front() / size % size);
+			}
+		}
+		ostr << "):";
+		break;
+	case GroupedNiceXLoop:
+		difficulty += 1500 + 150 * Log2(chain.size() - 4);
+		ostr << "Grouped Nice X-Loop (";
+		number = chain.front().front() % size + 1;
+		ostr << Number2Char(number) << " of ";
+		for (const Group &group: chain) {
+			is_strong_link = !is_strong_link;
+			if (group.front() != chain.front().front()) {
+				ostr << (is_strong_link ? "==" : "--");
+			}
+			if (group.size() == 1) {
+				ostr << Row2Char(group.front() / (size * size)) << Column2Char(group.front() / size % size);
+			} else if (group.front() / (size * size) == group.back() / (size * size)) {
+				ostr << Row2Char(group.front() / (size * size));
+				for (size_t num: group) {
+					ostr << Column2Char(num / size % size);
+				}
+			} else {
+				for (size_t num: group) {
+					ostr << Row2Char(num / (size * size));
+				}
+				ostr << Column2Char(group.front() / size % size);
+			}
+		}
+		ostr << "):";
+		break;
+	case GroupedAIC:
+		difficulty += 2000 + 300 * Log2(chain.size());
+		if (chain.front().front() % size != chain.back().front() % size) {
+			difficulty += 500;
+		}
+		ostr << "Grouped AIC (";
+		for (const Group &group: chain) {
+			is_strong_link = !is_strong_link;
+			if (group != chain.front()) {
+				ostr << (is_strong_link ? "==" : "--");
+			}
+			if (group.size() == 1) {
+				ostr << Row2Char(group.front() / (size * size)) << Column2Char(group.front() / size % size);
+			} else if (group.front() / (size * size) == group.back() / (size * size)) {
+				ostr << Row2Char(group.front() / (size * size));
+				for (size_t num: group) {
+					ostr << Column2Char(num / size % size);
+				}
+			} else {
+				for (size_t num: group) {
+					ostr << Row2Char(num / (size * size));
+				}
+				ostr << Column2Char(group.front() / size % size);
+			}
+			ostr << '(' << Number2Char(group.front() % size + 1) << ')';
+		}
+		ostr << "):";
+		break;
+	case GroupedNiceLoop:
+		difficulty += 2000 + 300 * Log2(chain.size() - 2);
+		if (chain.front().front() % size != chain.back().front() % size) {
+			difficulty += 500;
+		}
+		ostr << "Grouped Nice Loop (";
+		for (const Group &group: chain) {
+			is_strong_link = !is_strong_link;
+			if (group != chain.front()) {
+				ostr << (is_strong_link ? "==" : "--");
+			}
+			if (group.size() == 1) {
+				ostr << Row2Char(group.front() / (size * size)) << Column2Char(group.front() / size % size);
+			} else if (group.front() / (size * size) == group.back() / (size * size)) {
+				ostr << Row2Char(group.front() / (size * size));
+				for (size_t num: group) {
+					ostr << Column2Char(num / size % size);
+				}
+			} else {
+				for (size_t num: group) {
+					ostr << Row2Char(num / (size * size));
+				}
+				ostr << Column2Char(group.front() / size % size);
+			}
+			ostr << '(' << Number2Char(group.front() % size + 1) << ')';
+		}
+		ostr << "):";
+		break;
+	default:
+		break;
+	}
+
+	return ostr.str();
+}
+
+Technique::HintType Chain::GetHint() {
+	Technique::HintType hint;
+	hint = Skyscraper();
+	if (!hint.first.empty()) {
+		return hint;
+	}
+	hint = _2StringKite();
+	if (!hint.first.empty()) {
+		return hint;
+	}
+	hint = TurbotFish();
+	if (!hint.first.empty()) {
+		return hint;
+	}
+	hint = ForcingChain();
+	return hint;
+}
+
+Technique::HintType Chain::Skyscraper() {
+	for (size_t number = 1; number <= size; ++number) {
+		vector<pair<size_t, size_t>> rows;
+		for (size_t row = 0; row < size; ++row) {
+			if (row_count[row][number - 1] == 2) {
+				size_t c = 0;
+				for (size_t column = 0; column < size; ++column) {
+					if ((*this)(row, column, number)) {
+						c = c * size + column;
+					}
+				}
+				rows.push_back(make_pair(row, c));
+			}
+		}
+		size_t count = rows.size();
+		if (count == 0) {
+			continue;
+		}
+		for (size_t r1 = 0; r1 < count - 1; ++r1) {
+			size_t row1 = rows[r1].first;
+			size_t column11 = rows[r1].second / size;
+			size_t column12 = rows[r1].second % size;
+			for (size_t r2 = r1 + 1; r2 < count; ++r2) {
+				size_t row2 = rows[r2].first;
+				if (row1 / m != row2 / m) {
+					size_t column21 = rows[r2].second / size;
+					size_t column22 = rows[r2].second % size;
+					vector<size_t> elim;
+					if (column11 == column21) {
+						for (size_t cell: CommonEffectCell(row1, column12, row2, column22)) {
+							if ((*this)(cell, number)) {
+								elim.push_back(cell);
+							}
+						}
+					} else if (column12 == column22) {
+						for (size_t cell: CommonEffectCell(row1, column11, row2, column21)) {
+							if ((*this)(cell, number)) {
+								elim.push_back(cell);
+							}
+						}
+					}
+					if (!elim.empty()) {
+						difficulty += 1500;
+						ostringstream ostr;
+						ostr << "Skyscraper (" << Number2Char(number) << " in Row " << Row2Char(row1) << Row2Char(row2) << "):";
+						for (size_t cell: elim) {
+							Remove(cell, number);
+							ostr << ' ' << Row2Char(cell / size) << Column2Char(cell % size) << "!=" << Number2Char(number);
+						}
+						return make_pair(ostr.str(), false);
+					}
+				}
+			}
+		}
+
+		vector<pair<size_t, size_t>> columns;
+		for (size_t column = 0; column < size; ++column) {
+			if (column_count[column][number - 1] == 2) {
+				size_t r = 0;
+				for (size_t row = 0; row < size; ++row) {
+					if ((*this)(row, column, number)) {
+						r = r * size + row;
+					}
+				}
+				columns.push_back(make_pair(column, r));
+			}
+		}
+		count = columns.size();
+		if (count == 0) {
+			continue;
+		}
+		for (size_t c1 = 0; c1 < count - 1; ++c1) {
+			size_t column1 = columns[c1].first;
+			size_t row11 = columns[c1].second / size;
+			size_t row12 = columns[c1].second % size;
+			for (size_t c2 = c1 + 1; c2 < count; ++c2) {
+				size_t column2 = columns[c2].first;
+				if (column1 / n != column2 / n) {
+					size_t row21 = columns[c2].second / size;
+					size_t row22 = columns[c2].second % size;
+					vector<size_t> elim;
+					if (row11 == row21) {
+						for (size_t cell: CommonEffectCell(row12, column1, row22, column2)) {
+							if ((*this)(cell, number)) {
+								elim.push_back(cell);
+							}
+						}
+					} else if (row12 == row22) {
+						for (size_t cell: CommonEffectCell(row11, column1, row21, column2)) {
+							if ((*this)(cell, number)) {
+								elim.push_back(cell);
+							}
+						}
+					}
+					if (!elim.empty()) {
+						difficulty += 1500;
+						ostringstream ostr;
+						ostr << "Skyscraper (" << Number2Char(number) << " in Column " << Column2Char(column1) << Column2Char(column2) << "):";
+						for (size_t cell: elim) {
+							Remove(cell, number);
+							ostr << ' ' << Row2Char(cell / size) << Column2Char(cell % size) << "!=" << Number2Char(number);
+						}
+						return make_pair(ostr.str(), false);
+					}
+				}
+			}
+		}
+	}
+
+	return make_pair("", false);
+}
+
+Technique::HintType Chain::_2StringKite() {
+	for (size_t number = 1; number <= size; ++number) {
+		vector<pair<size_t, size_t>> rows, columns;
+		for (size_t row = 0; row < size; ++row) {
+			if (row_count[row][number - 1] == 2) {
+				size_t c = 0;
+				for (size_t column = 0; column < size; ++column) {
+					if ((*this)(row, column, number)) {
+						c = c * size + column;
+					}
+				}
+				rows.push_back(make_pair(row, c));
+			}
+		}
+		for (size_t column = 0; column < size; ++column) {
+			if (column_count[column][number - 1] == 2) {
+				size_t r = 0;
+				for (size_t row = 0; row < size; ++row) {
+					if ((*this)(row, column, number)) {
+						r = r * size + row;
+					}
+				}
+				columns.push_back(make_pair(column, r));
+			}
+		}
+		size_t rcount = rows.size();
+		size_t ccount = columns.size();
+		for (size_t r = 0; r < rcount; ++r) {
+			size_t row1 = rows[r].first;
+			size_t column11 = rows[r].second / size;
+			size_t column12 = rows[r].second % size;
+			for (size_t c = 0; c < ccount; ++c) {
+				size_t column2 = columns[c].first;
+				size_t row21 = columns[c].second / size;
+				size_t row22 = columns[c].second % size;
+				if (row1 / m == row21 / m && row1 != row21) {
+					if (column2 / n == column11 / n && column2 != column11) {
+						if ((*this)(row22, column12, number)) {
+							Remove(row22, column12, number);
+							difficulty += 2000;
+							ostringstream ostr;
+							ostr << "2 String Kite (" << Number2Char(number) << " in Row " << Row2Char(row1) << " Column " << Column2Char(column2)
+								<< "): " << Row2Char(row22) << Column2Char(column12) << "!=" << Number2Char(number);
+							return make_pair(ostr.str(), false);
+						}
+					} else if (column2 / n == column12 / n
+						&& column2 != column12) {
+						if ((*this)(row22, column11, number)) {
+							Remove(row22, column11, number);
+							difficulty += 0x2000;
+							ostringstream ostr;
+							ostr << "2 String Kite (" << Number2Char(number) << " in Row " << Row2Char(row1) << " Column " << Column2Char(column2)
+								<< "): " << Row2Char(row22) << Column2Char(column11) << "!=" << Number2Char(number);
+							return make_pair(ostr.str(), false);
+						}
+					}
+				} else if (row1 / m == row22 / m && row1 != row22) {
+					if (column2 / n == column11 / n && column2 != column11) {
+						if ((*this)(row21, column12, number)) {
+							Remove(row21, column12, number);
+							difficulty += 2000;
+							ostringstream ostr;
+							ostr << "2 String Kite (" << Number2Char(number) << " in Row " << Row2Char(row1) << " Column " << Column2Char(column2)
+								<< "): " << Row2Char(row21) << Column2Char(column12) << "!=" << Number2Char(number);
+							return make_pair(ostr.str(), false);
+						}
+					} else if (column2 / n == column12 / n
+						&& column2 != column12) {
+						if ((*this)(row21, column11, number)) {
+							Remove(row21, column11, number);
+							difficulty += 2000;
+							ostringstream ostr;
+							ostr << "2 String Kite (" << Number2Char(number) << " in Row " << Row2Char(row1) << " Column " << Column2Char(column2)
+								<< "): " << Row2Char(row21) << Column2Char(column11) << "!=" << Number2Char(number);
+							return make_pair(ostr.str(), false);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return make_pair("", false);
+}
+
+Technique::HintType Chain::TurbotFish() {
+	for (size_t number = 1; number <= size; ++number) {
+		vector<pair<size_t, size_t>> boxes, rows, columns;
+		for (size_t box = 0; box < size; ++box) {
+			if (box_count[box][number - 1] == 2) {
+				size_t c = 0;
+				for (size_t cell: box_index[box]) {
+					if ((*this)(cell, number)) {
+						c = c * size * size + cell;
+					}
+				}
+				boxes.push_back(make_pair(box, c));
+			}
+		}
+		for (size_t row = 0; row < size; ++row) {
+			if (row_count[row][number - 1] == 2) {
+				size_t c = 0;
+				for (size_t column = 0; column < size; ++column) {
+					if ((*this)(row, column, number)) {
+						c = c * size + column;
+					}
+				}
+				rows.push_back(make_pair(row, c));
+			}
+		}
+		for (size_t column = 0; column < size; ++column) {
+			if (column_count[column][number - 1] == 2) {
+				size_t r = 0;
+				for (size_t row = 0; row < size; ++row) {
+					if ((*this)(row, column, number)) {
+						r = r * size + row;
+					}
+				}
+				columns.push_back(make_pair(column, r));
+			}
+		}
+		size_t bcount = boxes.size();
+		size_t rcount = rows.size();
+		size_t ccount = columns.size();
+		for (size_t b = 0; b < bcount; ++b) {
+			size_t row11 = boxes[b].second / (size * size) / size;
+			size_t column11 = boxes[b].second / (size * size) % size;
+			size_t row12 = boxes[b].second % (size * size) / size;
+			size_t column12 = boxes[b].second % (size * size) % size;
+			for (size_t r = 0; r < rcount; ++r) {
+				size_t row2 = rows[r].first;
+				size_t column21 = rows[r].second / size;
+				size_t column22 = rows[r].second % size;
+				if (column11 == column21) {
+					if (row11 / m != row2 / m && column12 != column22) {
+						if ((*this)(row12, column22, number)) {
+							Remove(row12, column22, number);
+							difficulty += 2000;
+							ostringstream ostr;
+							ostr << "Turbot Fish (" << Number2Char(number) << " in Box " << boxes[b].first + 1 << " and Row " << Row2Char(row2) << "): "
+								<< Row2Char(row12) << Column2Char(column22) << "!=" << Number2Char(number);
+							return make_pair(ostr.str(), false);
+						}
+					}
+				} else if (column11 == column22) {
+					if (row11 / m != row2 / m && column12 != column21) {
+						if ((*this)(row12, column21, number)) {
+							Remove(row12, column21, number);
+							difficulty += 2000;
+							ostringstream ostr;
+							ostr << "Turbot Fish (" << Number2Char(number) << " in Box " << boxes[b].first + 1 << " and Row " << Row2Char(row2) << "): "
+								<< Row2Char(row12) << Column2Char(column21) << "!=" << Number2Char(number);
+							return make_pair(ostr.str(), false);
+						}
+					}
+				} else if (column12 == column21) {
+					if (row12 / m != row2 / m && column11 != column22) {
+						if ((*this)(row11, column22, number)) {
+							Remove(row11, column22, number);
+							difficulty += 2000;
+							ostringstream ostr;
+							ostr << "Turbot Fish (" << Number2Char(number) << " in Box " << boxes[b].first + 1 << " and Row " << Row2Char(row2) << "): "
+								<< Row2Char(row11) << Column2Char(column22) << "!=" << Number2Char(number);
+							return make_pair(ostr.str(), false);
+						}
+					}
+				} else if (column12 == column22) {
+					if (row12 / m != row2 / m && column11 != column21) {
+						if ((*this)(row11, column21, number)) {
+							Remove(row11, column21, number);
+							difficulty += 2000;
+							ostringstream ostr;
+							ostr << "Turbot Fish (" << Number2Char(number) << " in Box " << boxes[b].first + 1 << " and Row " << Row2Char(row2) << "): "
+								<< Row2Char(row11) << Column2Char(column21) << "!=" << Number2Char(number);
+							return make_pair(ostr.str(), false);
+						}
+					}
+				}
+			}
+			for (size_t c = 0; c < ccount; ++c) {
+				size_t column2 = columns[c].first;
+				size_t row21 = columns[c].second / size;
+				size_t row22 = columns[c].second % size;
+				if (row11 == row21) {
+					if (column11 / n != column2 / n && row12 != row22) {
+						if ((*this)(row22, column12, number)) {
+							Remove(row22, column12, number);
+							difficulty += 2000;
+							ostringstream ostr;
+							ostr << "Turbot Fish (" << Number2Char(number)
+								<< " in Box " << boxes[b].first + 1 << " and Column " << Column2Char(column2) << "): "
+								<< Row2Char(row22) << Column2Char(column12) << "!=" << Number2Char(number);
+							return make_pair(ostr.str(), false);
+						}
+					}
+				} else if (row11 == row22) {
+					if (column11 / n != column2 / n && row12 != row21) {
+						if ((*this)(row21, column12, number)) {
+							Remove(row21, column12, number);
+							difficulty += 2000;
+							ostringstream ostr;
+							ostr << "Turbot Fish (" << Number2Char(number)
+								<< " in Box " << boxes[b].first + 1 << " and Column " << Column2Char(column2) << "): "
+								<< Row2Char(row21) << Column2Char(column12) << "!=" << Number2Char(number);
+							return make_pair(ostr.str(), false);
+						}
+					}
+				} else if (row12 == row21) {
+					if (column12 / n != column2 / n && row11 != row22) {
+						if ((*this)(row22, column11, number)) {
+							Remove(row22, column11, number);
+							difficulty += 2000;
+							ostringstream ostr;
+							ostr << "Turbot Fish (" << Number2Char(number)
+								<< " in Box " << boxes[b].first + 1 << " and Column " << Column2Char(column2) << "): "
+								<< Row2Char(row22) << Column2Char(column11) << "!=" << Number2Char(number);
+							return make_pair(ostr.str(), false);
+						}
+					}
+				} else if (row12 == row22) {
+					if (column12 / n != column2 / n && row11 != row21) {
+						if ((*this)(row21, column11, number)) {
+							Remove(row21, column11, number);
+							difficulty += 2000;
+							ostringstream ostr;
+							ostr << "Turbot Fish (" << Number2Char(number)
+								<< " in Box " << boxes[b].first << " and Column " << Column2Char(column2) << "): "
+								<< Row2Char(row21) << Column2Char(column11) << "!=" << Number2Char(number);
+							return make_pair(ostr.str(), false);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return make_pair("", false);
+}
+
+Technique::HintType Chain::ForcingChain() {
+	deque<unordered_map<pair<Group, Group>, vector<Group>>> strong_link(1);
+	auto &predecessor = strong_link.front();
+	for (size_t number = 1; number <= size; ++number) {
+		for (size_t box = 0; box < size; ++box) {
+			vector<size_t> contain;
+			for (size_t cell: box_index[box]) {
+				if ((*this)(cell, number)) {
+					contain.push_back(cell);
+				}
+			}
+			if (box_count[box][number - 1] == 2) {
+				size_t c[2], count = 0;
+				for (size_t cell: contain) {
+					c[count++] = cell * size + number - 1;
+				}
+				Group g1(1, c[0]), g2(1, c[1]);
+				predecessor[make_pair(g1, g2)] = {g1, g2};
+				predecessor[make_pair(g2, g1)] = {g2, g1};
+			} else if (box_count[box][number - 1] > 0) {
+				size_t r = box / m * m;
+				size_t c = box % m * n;
+				bool no_strong_chain = false;
+				for (size_t row = r; row < r + m; ++row) {
+					bool ok = false;
+					for (size_t cell: contain) {
+						if (!row_contain[row][cell]) {
+							ok = true;
+							break;
+						}
+					}
+					if (!ok) {
+						no_strong_chain = true;
+						break;
+					}
+				}
+				if (no_strong_chain) {
+					continue;
+				}
+				no_strong_chain = false;
+				for (size_t column = c; column < c + n; ++column) {
+					bool ok = false;
+					for (size_t cell: contain) {
+						if (!column_contain[column][cell]) {
+							ok = true;
+							break;
+						}
+					}
+					if (!ok) {
+						no_strong_chain = true;
+						break;
+					}
+				}
+				if (no_strong_chain) {
+					continue;
+				}
+				for (size_t r1 = r; r1 < r + m - 1; ++r1) for (size_t r2 = r1 + 1; r2 < r + m; ++r2) {
+					bool ok = true;
+					for (size_t cell: contain) {
+						if (!row_contain[r1][cell] && !row_contain[r2][cell]) {
+							ok = false;
+							break;
+						}
+					}
+					if (ok) {
+						Group g1, g2;
+						for (size_t cell: contain) {
+							(row_contain[r1][cell] ? g1 : g2).push_back(cell * size + number - 1);
+						}
+						predecessor[make_pair(g1, g2)] = {g1, g2};
+						predecessor[make_pair(g2, g1)] = {g2, g1};
+						break;
+					}
+				}
+				for (size_t c1 = c; c1 < c + n - 1; ++c1) for (size_t c2 = c1 + 1; c2 < c + n; ++c2) {
+					bool ok = true;
+					for (size_t cell: contain) {
+						if (!column_contain[c1][cell] && !column_contain[c2][cell]) {
+							ok = false;
+							break;
+						}
+					}
+					if (ok) {
+						Group g1, g2;
+						for (size_t cell: contain) {
+							(column_contain[c1][cell] ? g1 : g2).push_back(cell * size + number - 1);
+						}
+						predecessor[make_pair(g1, g2)] = {g1, g2};
+						predecessor[make_pair(g2, g1)] = {g2, g1};
+						break;
+					}
+				}
+				for (size_t row = r; row < r + m; ++row) for (size_t column = c; column < c + n; ++column) {
+					bool ok = true;
+					for (size_t cell: contain) {
+						if (!row_contain[row][cell] && !column_contain[column][cell]) {
+							ok = false;
+							break;
+						}
+					}
+					if (ok) {
+						Group g1, g2;
+						for (size_t cell: contain) {
+							(row_contain[row][cell] ? g1 : g2).push_back(cell * size + number - 1);
+						}
+						if (g1.size() != 1 && g2.size() != 1) {
+							predecessor[make_pair(g1, g2)] = {g1, g2};
+							predecessor[make_pair(g2, g1)] = {g2, g1};
+						}
+						g1.clear();
+						g2.clear();
+						for (size_t cell: contain) {
+							(column_contain[column][cell] ? g1 : g2).push_back(cell * size + number - 1);
+						}
+						if (g1.size() != 1 && g2.size() != 1) {
+							predecessor[make_pair(g1, g2)] = {g1, g2};
+							predecessor[make_pair(g2, g1)] = {g2, g1};
+						}
+						break;
+					}
+				}
+			}
+		}
+		for (size_t row = 0; row < size; ++row) {
+			vector<size_t> contain;
+			for (size_t cell: row_index[row]) {
+				if ((*this)(cell, number)) {
+					contain.push_back(cell);
+				}
+			}
+			if (row_count[row][number - 1] == 2) {
+				size_t c[2], count = 0;
+				for (size_t cell: contain) {
+					c[count++] = cell * size + number - 1;
+				}
+				Group g1(1, c[0]), g2(1, c[1]);
+				predecessor[make_pair(g1, g2)] = {g1, g2};
+				predecessor[make_pair(g2, g1)] = {g2, g1};
+			} else if (row_count[row][number - 1] > 0) {
+				vector<size_t> boxes;
+				for (size_t i = 0; i < m; ++i) {
+					boxes.push_back(row / m * m + i);
+				}
+				bool no_strong_chain = false;
+				for (size_t box: boxes) {
+					bool ok = false;
+					for (size_t cell: contain) {
+						if (!box_contain[box][cell]) {
+							ok = true;
+							break;
+						}
+					}
+					if (!ok) {
+						no_strong_chain = true;
+						break;
+					}
+				}
+				if (no_strong_chain) {
+					continue;
+				}
+				for (size_t b1 = 0; b1 < m - 1; ++b1) for (size_t b2 = b1 + 1; b2 < m; ++b2) {
+					bool ok = true;
+					for (size_t cell: contain) {
+						if (!box_contain[boxes[b1]][cell] && !box_contain[boxes[b2]][cell]) {
+							ok = false;
+							break;
+						}
+					}
+					if (ok) {
+						Group g1, g2;
+						for (size_t cell: contain) {
+							(box_contain[boxes[b1]][cell] ? g1 : g2).push_back(cell * size + number - 1);
+						}
+						predecessor[make_pair(g1, g2)] = {g1, g2};
+						predecessor[make_pair(g2, g1)] = {g2, g1};
+						break;
+					}
+				}
+			}
+		}
+		for (size_t column = 0; column < size; ++column) {
+			vector<size_t> contain;
+			for (size_t cell: column_index[column]) {
+				if ((*this)(cell, number)) {
+					contain.push_back(cell);
+				}
+			}
+			if (column_count[column][number - 1] == 2) {
+				size_t c[2], count = 0;
+				for (size_t cell: contain) {
+					c[count++] = cell * size + number - 1;
+				}
+				Group g1(1, c[0]), g2(1, c[1]);
+				predecessor[make_pair(g1, g2)] = {g1, g2};
+				predecessor[make_pair(g2, g1)] = {g2, g1};
+			} else if (column_count[column][number - 1] > 0) {
+				vector<size_t> boxes;
+				for (size_t i = 0; i < n; ++i) {
+					boxes.push_back(i * m + column / n);
+				}
+				bool no_strong_chain = false;
+				for (size_t box: boxes) {
+					bool ok = false;
+					for (size_t cell: contain) {
+						if (!box_contain[box][cell]) {
+							ok = true;
+							break;
+						}
+					}
+					if (!ok) {
+						no_strong_chain = true;
+						break;
+					}
+				}
+				if (no_strong_chain) {
+					continue;
+				}
+				for (size_t b1 = 0; b1 < n - 1; ++b1) for (size_t b2 = b1 + 1; b2 < n; ++b2) {
+					bool ok = true;
+					for (size_t cell: contain) {
+						if (!box_contain[boxes[b1]][cell] && !box_contain[boxes[b2]][cell]) {
+							ok = false;
+							break;
+						}
+					}
+					if (ok) {
+						Group g1, g2;
+						for (size_t cell: contain) {
+							(box_contain[boxes[b1]][cell] ? g1 : g2).push_back(cell * size + number - 1);
+						}
+						predecessor[make_pair(g1, g2)] = {g1, g2};
+						predecessor[make_pair(g2, g1)] = {g2, g1};
+						break;
+					}
+				}
+			}
+		}
+	}
+	for (size_t cell = 0; cell < size * size; ++cell) {
+		if (cell_count[cell] == 2) {
+			size_t c[2], count = 0;
+			for (size_t number = 1; number <= size; ++number) {
+				if ((*this)(cell, number)) {
+					c[count++] = cell * size + number - 1;
+				}
+			}
+			Group g1(1, c[0]), g2(1, c[1]);
+			predecessor[make_pair(g1, g2)] = {g1, g2};
+			predecessor[make_pair(g2, g1)] = {g2, g1};
+		}
+	}
+
+	bool ok = true;
+	while (ok) {
+		ok = false;
+		unordered_map<pair<Group, Group>, vector<Group>> link;
+		size_t original_size = strong_link.size();
+		for (size_t d = 0; d <= (original_size - 1) / 2; ++d) {
+			for (const auto &link1: strong_link[d]) {
+				const Group &group11 = link1.first.first;
+				const Group &group12 = link1.first.second;
+				if (group11 > group12) {
+					continue;
+				}
+				const vector<Group> &l1 = link1.second;
+				for (const auto &link2: strong_link[original_size - d - 1]) {
+					const Group &group21 = link2.first.first;
+					const Group &group22 = link2.first.second;
+					if (group21 > group22) {
+						continue;
+					}
+					const vector<Group> &l2 = link2.second;
+					if (IsWeakChain(group11, group21)) {
+						pair<Group, Group> key1(group12, group22);
+						pair<Group, Group> key2(group22, group12);
+						bool found = false;
+						for (size_t depth = 0; depth < strong_link.size(); ++depth) {
+							const auto &m = strong_link[depth];
+							if (m.find(key1) != m.cend()) {
+								found = true;
+								break;
+							}
+						}
+						if (!found) {
+							vector<Group> new_vector1(l1.crbegin(), l1.crend());
+							new_vector1.insert(new_vector1.end(), l2.cbegin(), l2.cend());
+							link[key1] = new_vector1;
+							vector<Group> new_vector2(l2.crbegin(), l2.crend());
+							new_vector2.insert(new_vector2.end(), l1.cbegin(), l1.cend());
+							link[key2] = new_vector2;
+							if (!ok) {
+								ok = true;
+								strong_link.push_back(link);
+							} else {
+								(strong_link.back())[key1] = new_vector1;
+								(strong_link.back())[key2] = new_vector2;
+							}
+							vector<size_t> common_effect_cell = CommonEffectCell(group12, group22);
+							vector<size_t> elim;
+							for (size_t cell: common_effect_cell) {
+								if ((*this)(cell)) {
+									elim.push_back(cell);
+								}
+							}
+							if (!elim.empty()) {
+								ostringstream ostr;
+								ostr << Chain2String(new_vector1);
+								for (size_t cell: elim) {
+									Remove(cell);
+									ostr << ' ' << Row2Char(cell / (size * size)) << Column2Char(cell / size % size)
+										<< "!=" << Number2Char(cell % size + 1);
+								}
+								return make_pair(ostr.str(), false);
+							}
+						}
+					}
+					if (IsWeakChain(group11, group22)) {
+						pair<Group, Group> key1(group12, group21);
+						pair<Group, Group> key2(group21, group12);
+						bool found = false;
+						for (size_t depth = 0; depth < strong_link.size(); ++depth) {
+							const auto &m = strong_link[depth];
+							if (m.find(key1) != m.cend()) {
+								found = true;
+								break;
+							}
+						}
+						if (!found) {
+							vector<Group> new_vector1(l1.crbegin(), l1.crend());
+							new_vector1.insert(new_vector1.end(), l2.crbegin(), l2.crend());
+							link[key1] = new_vector1;
+							vector<Group> new_vector2 = l2;
+							new_vector2.insert(new_vector2.end(), l1.cbegin(), l1.cend());
+							link[key2] = new_vector2;
+							if (!ok) {
+								ok = true;
+								strong_link.push_back(link);
+							} else {
+								(strong_link.back())[key1] = new_vector1;
+								(strong_link.back())[key2] = new_vector2;
+							}
+							vector<size_t> common_effect_cell = CommonEffectCell(group12, group21);
+							vector<size_t> elim;
+							for (size_t cell: common_effect_cell) {
+								if ((*this)(cell)) {
+									elim.push_back(cell);
+								}
+							}
+							if (!elim.empty()) {
+								ostringstream ostr;
+								ostr << Chain2String(new_vector1);
+								for (size_t cell: elim) {
+									Remove(cell);
+									ostr << ' ' << Row2Char(cell / (size * size)) << Column2Char(cell / size % size)
+										<< "!=" << Number2Char(cell % size + 1);
+								}
+								return make_pair(ostr.str(), false);
+							}
+						}
+					}
+					if (IsWeakChain(group12, group21)) {
+						pair<Group, Group> key1(group11, group22);
+						pair<Group, Group> key2(group22, group11);
+						bool found = false;
+						for (size_t depth = 0; depth < strong_link.size(); ++depth) {
+							const auto &m = strong_link[depth];
+							if (m.find(key1) != m.cend()) {
+								found = true;
+								break;
+							}
+						}
+						if (!found) {
+							vector<Group> new_vector1(l1);
+							new_vector1.insert(new_vector1.end(), l2.cbegin(), l2.cend());
+							link[key1] = new_vector1;
+							vector<Group> new_vector2(l2.crbegin(), l2.crend());
+							new_vector2.insert(new_vector2.end(), l1.crbegin(), l1.crend());
+							link[key2] = new_vector2;
+							if (!ok) {
+								ok = true;
+								strong_link.push_back(link);
+							} else {
+								(strong_link.back())[key1] = new_vector1;
+								(strong_link.back())[key2] = new_vector2;
+							}
+							vector<size_t> common_effect_cell = CommonEffectCell(group11, group22);
+							vector<size_t> elim;
+							for (size_t cell: common_effect_cell) {
+								if ((*this)(cell)) {
+									elim.push_back(cell);
+								}
+							}
+							if (!elim.empty()) {
+								ostringstream ostr;
+								ostr << Chain2String(new_vector1);
+								for (size_t cell: elim) {
+									Remove(cell);
+									ostr << ' ' << Row2Char(cell / (size * size)) << Column2Char(cell / size % size)
+										<< "!=" << Number2Char(cell % size + 1);
+								}
+								return make_pair(ostr.str(), false);
+							}
+						}
+					}
+					if (IsWeakChain(group12, group22)) {
+						pair<Group, Group> key1(group11, group21);
+						pair<Group, Group> key2(group21, group11);
+						bool found = false;
+						for (size_t depth = 0; depth < strong_link.size(); ++depth) {
+							const auto &m = strong_link[depth];
+							if (m.find(key1) != m.cend()) {
+								found = true;
+								break;
+							}
+						}
+						if (!found) {
+							vector<Group> new_vector1(l1);
+							new_vector1.insert(new_vector1.end(), l2.crbegin(), l2.crend());
+							link[key1] = new_vector1;
+							vector<Group> new_vector2(l2);
+							new_vector2.insert(new_vector2.end(), l1.crbegin(), l1.crend());
+							link[key2] = new_vector2;
+							if (!ok) {
+								ok = true;
+								strong_link.push_back(link);
+							} else {
+								(strong_link.back())[key1] = new_vector1;
+								(strong_link.back())[key2] = new_vector2;
+							}
+							vector<size_t> common_effect_cell = CommonEffectCell(group11, group21);
+							vector<size_t> elim;
+							for (size_t cell: common_effect_cell) {
+								if ((*this)(cell)) {
+									elim.push_back(cell);
+								}
+							}
+							if (!elim.empty()) {
+								ostringstream ostr;
+								ostr << Chain2String(new_vector1);
+								for (size_t cell: elim) {
+									Remove(cell);
+									ostr << ' ' << Row2Char(cell / (size * size)) << Column2Char(cell / size % size)
+										<< "!=" << Number2Char(cell % size + 1);
+								}
+								return make_pair(ostr.str(), false);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return make_pair("", false);
+}
