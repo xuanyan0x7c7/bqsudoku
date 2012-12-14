@@ -31,8 +31,8 @@ public:
 public:
 	BruteForceSolver(const Sudoku&, bool check_uniqueness = false);
 private:
-	void Remove(size_t);
-	void Resume(size_t);
+	void Remove(std::size_t);
+	void Resume(std::size_t);
 	void Search(int);
 	void AnswerFound();
 public:

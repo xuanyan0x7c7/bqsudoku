@@ -4,20 +4,11 @@
 #include "Fish.h"
 using std::make_pair;
 using std::ostringstream;
-using std::pair;
 using std::reverse;
 using std::size_t;
 using std::string;
 using std::vector;
 
-
-Fish::Fish(const Fish&) = default;
-Fish::Fish(Fish&&) = default;
-Fish& Fish::operator =(const Fish&) = delete;
-Fish& Fish::operator =(Fish&&) = delete;
-Fish::~Fish() = default;
-
-Fish::Fish(Candidate &sudoku): Technique(sudoku) {}
 
 namespace {
 	bool NextCombination(vector<bool> &vec) {
@@ -42,6 +33,14 @@ namespace {
 	}
 }
 
+Fish::Fish(const Fish&) = default;
+Fish::Fish(Fish&&) = default;
+Fish& Fish::operator =(const Fish&) = delete;
+Fish& Fish::operator =(Fish&&) = delete;
+Fish::~Fish() = default;
+
+Fish::Fish(Candidate &sudoku): Technique(sudoku) {}
+
 Technique::HintType Fish::GetHint() {
 	HintType hint;
 	for (size_t fish_size = 2; fish_size <= size / 2; ++fish_size) {
@@ -54,10 +53,8 @@ Technique::HintType Fish::GetHint() {
 }
 
 Technique::HintType Fish::_Fish(size_t fish_size) {
-	static const string xwing_name[6] =
-		{"", "", "X-Wing", "Swordfish", "Jellyfish", "Squirmbag"};
-	string name = fish_size < 6 ? xwing_name[fish_size]
-		: Num2Str(fish_size) + string("X-Wing");
+	static const string xwing_name[8] = {"", "", "X-Wing", "Swordfish", "Jellyfish", "Squirmbag", "Whale", "Leviathan"};
+	string name = fish_size < 8 ? xwing_name[fish_size] : Num2Str(fish_size) + string("X-Wing");
 	for (size_t number = 1; number <= size; ++number) {
 		vector<size_t> row_available, column_available;
 		for (size_t i = 0; i < size; ++i) {
@@ -99,25 +96,25 @@ Technique::HintType Fish::_Fish(size_t fish_size) {
 				++count;
 			}
 			if (count == fish_size) {
-				vector<pair<size_t, size_t>> elim;
+				vector<size_t> elim;
 				for (size_t column = 0; column < size; ++column) if (contain[column]) {
 					for (size_t i = 0; i < blank_size; ++i) if (!set[i]) {
 						if ((*this)(row_available[i], column, number)) {
-							elim.push_back(make_pair(row_available[i], column));
+							elim.push_back(row_available[i] * size + column);
 						}
 					}
 				}
 				if (!elim.empty()) {
 					difficulty += 1000 + 100 * (fish_size - 2);
 					ostringstream ostr;
-					ostr << name << " (" << Number2Char(number) << " in Row ";
+					ostr << name << " (" << Number2String(number) << " in Row ";
 					for (size_t row: row_contain) {
-						ostr << Row2Char(row);
+						ostr << Row2String(row);
 					}
 					ostr << "):";
-					for (auto x: elim) {
-						Remove(x.first, x.second, number);
-						ostr << ' ' << Row2Char(x.first) << Column2Char(x.second) << "!=" << Number2Char(number);
+					for (size_t cell: elim) {
+						Remove(cell, number);
+						ostr << ' ' << Cell2String(cell) << "!=" << Number2String(number);
 					}
 					return make_pair(ostr.str(), false);
 				}
@@ -136,25 +133,25 @@ Technique::HintType Fish::_Fish(size_t fish_size) {
 				++count;
 			}
 			if (count == fish_size) {
-				vector<pair<size_t, size_t>> elim;
+				vector<size_t> elim;
 				for (size_t row = 0; row < size; ++row) if (contain[row]) {
 					for (size_t i = 0; i < blank_size; ++i) if (!set[i]) {
 						if ((*this)(row, column_available[i], number)) {
-							elim.push_back(make_pair(row, column_available[i]));
+							elim.push_back(row * size + column_available[i]);
 						}
 					}
 				}
 				if (!elim.empty()) {
 					difficulty += 1000 + 100 * (fish_size - 2);
 					ostringstream ostr;
-					ostr << name << " (" << Number2Char(number) << " in Column ";
+					ostr << name << " (" << Number2String(number) << " in Column ";
 					for (size_t column: column_contain) {
-						ostr << Column2Char(column);
+						ostr << Column2String(column);
 					}
 					ostr << "):";
-					for (auto x: elim) {
-						Remove(x.first, x.second, number);
-						ostr << ' ' << Row2Char(x.first) << Column2Char(x.second) << "!=" << Number2Char(number);
+					for (size_t cell: elim) {
+						Remove(cell, number);
+						ostr << ' ' << Cell2String(cell) << "!=" << Number2String(number);
 					}
 					return make_pair(ostr.str(), false);
 				}

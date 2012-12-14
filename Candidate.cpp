@@ -22,8 +22,8 @@ Candidate::Candidate(const Sudoku &sudoku): Sudoku(sudoku),
 	box_count(size, vector<size_t>(size, size)), cell_count(size * size, size),
 	row_index(size, vector<size_t>(size)), column_index(size, vector<size_t>(size)), box_index(size, vector<size_t>(size)),
 	row_contain(size, vector<bool>(size * size)), column_contain(size, vector<bool>(size * size)),
-	box_contain(size, vector<bool>(size * size)), weak_chain(size * size * size, vector<bool>(size * size * size)),
-	difficulty(0) {
+	box_contain(size, vector<bool>(size * size)), row_blank(size, size), column_blank(size, size), box_blank(size, size),
+	weak_chain(size * size * size, vector<bool>(size * size * size)), difficulty(0) {
 	for (size_t i = 0; i < size; ++i) {
 		for (size_t j = 0; j < size; ++j) {
 			row_index[i][j] = i * size + j;
@@ -81,6 +81,9 @@ Candidate::Candidate(const Sudoku &sudoku): Sudoku(sudoku),
 }
 
 void Candidate::Fill(size_t row, size_t column, size_t number) {
+	--row_blank[row];
+	--column_blank[column];
+	--box_blank[row / m * m + column / n];
 	size_t index = row * size + column;
 	board[index] = number;
 	for (size_t i = 0; i < size; ++i) {

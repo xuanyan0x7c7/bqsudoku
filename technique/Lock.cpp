@@ -1,9 +1,7 @@
 #include <algorithm>
-#include <string>
 #include <sstream>
 #include "Lock.h"
 using std::make_pair;
-using std::pair;
 using std::ostringstream;
 using std::reverse;
 using std::size_t;
@@ -77,12 +75,13 @@ Technique::HintType Lock::LockedCandidates() {
 			if (sum == 0) {
 				continue;
 			}
-			vector<pair<size_t,size_t>> elim;
+			vector<size_t> elim;
 			for (size_t i = 0; i < m; ++i) if (count[i] == sum) {
 				for (size_t r = 0; r < m; ++r) if (r != row % m) {
 					for (size_t c = 0; c < n; ++c) {
-						if ((*this)(row / m * m + r, column / n * n + c, number)) {
-							elim.push_back(make_pair(row / m * m + r, column / n * n + c));
+						size_t cell = (row / m * m + r) * size + (column / n * n + c);
+						if ((*this)(cell, number)) {
+							elim.push_back(cell);
 						}
 					}
 				}
@@ -91,10 +90,10 @@ Technique::HintType Lock::LockedCandidates() {
 			if (!elim.empty()) {
 				difficulty += 100;
 				ostringstream ostr;
-				ostr << "Locked Candidates (" << Number2Char(number) << " in Row " << Row2Char(row) << "):";
-				for (auto &x: elim) {
-					Remove(x.first, x.second, number);
-					ostr << ' ' << Row2Char(x.first) << Column2Char(x.second) << "!=" << Number2Char(number);
+				ostr << "Locked Candidates (" << Number2String(number) << " in Row " << Row2String(row) << "):";
+				for (size_t cell: elim) {
+					Remove(cell, number);
+					ostr << ' ' << Cell2String(cell) << "!=" << Number2String(number);
 				}
 				return make_pair(ostr.str(), false);
 			}
@@ -116,12 +115,13 @@ Technique::HintType Lock::LockedCandidates() {
 			if (sum == 0) {
 				continue;
 			}
-			vector<pair<size_t,size_t>> elim;
+			vector<size_t> elim;
 			for (size_t i = 0; i < n; ++i) if (count[i] == sum) {
 				for (size_t c = 0; c < n; ++c) if (c != column % n) {
 					for (size_t r = 0; r < m; ++r) {
-						if ((*this)(row / m * m + r, column / n * n + c, number)) {
-							elim.push_back(make_pair(row / m * m + r, column / n * n + c));
+						size_t cell = (row / m * m + r) * size + (column / n * n + c);
+						if ((*this)(cell, number)) {
+							elim.push_back(cell);
 						}
 					}
 				}
@@ -130,11 +130,11 @@ Technique::HintType Lock::LockedCandidates() {
 			if (!elim.empty()) {
 				difficulty += 100;
 				ostringstream ostr;
-				ostr << "Locked Candidates (" << Number2Char(number)
-					<< " in Column " << Column2Char(column) << "):";
-				for (auto &x: elim) {
-					Remove(x.first, x.second, number);
-					ostr << ' ' << Row2Char(x.first) << Column2Char(x.second) << "!=" << Number2Char(number);
+				ostr << "Locked Candidates (" << Number2String(number)
+					<< " in Column " << Column2String(column) << "):";
+				for (size_t cell: elim) {
+					Remove(cell, number);
+					ostr << ' ' << Cell2String(cell) << "!=" << Number2String(number);
 				}
 				return make_pair(ostr.str(), false);
 			}
@@ -158,12 +158,12 @@ Technique::HintType Lock::LockedCandidates() {
 			if (sum == 0) {
 				continue;
 			}
-			vector<pair<size_t,size_t>> row_elim, column_elim;
+			vector<size_t> row_elim, column_elim;
 			for (size_t i = 0; i < m; ++i) if (count_row[i] == sum) {
 				for (size_t c = 0; c < size; ++c) {
 					if (c / n != box % m) {
 						if ((*this)(row ,c, number)) {
-							row_elim.push_back(make_pair(row, c));
+							row_elim.push_back(row * size + c);
 						}
 					}
 				}
@@ -173,7 +173,7 @@ Technique::HintType Lock::LockedCandidates() {
 				for (size_t r = 0; r < size; ++r) {
 					if (r / m != box / m) {
 						if ((*this)(r, column, number)) {
-							column_elim.push_back(make_pair(r, column));
+							column_elim.push_back(r * size + column);
 						}
 					}
 				}
@@ -182,20 +182,20 @@ Technique::HintType Lock::LockedCandidates() {
 			if (!row_elim.empty()) {
 				difficulty += 100;
 				ostringstream ostr;
-				ostr << "Locked Candidates (" << Number2Char(number) << " in Box " << box + 1 << "):";
-				for (auto &x: row_elim) {
-					Remove(x.first, x.second, number);
-					ostr << ' ' << Row2Char(x.first) << Column2Char(x.second) << "!=" << Number2Char(number);
+				ostr << "Locked Candidates (" << Number2String(number) << " in Box " << box + 1 << "):";
+				for (size_t cell: row_elim) {
+					Remove(cell, number);
+					ostr << ' ' << Cell2String(cell) << "!=" << Number2String(number);
 				}
 				return make_pair(ostr.str(), false);
 			}
 			if (!column_elim.empty()) {
-				difficulty += 0x100;
+				difficulty += 100;
 				ostringstream ostr;
-				ostr << "Locked Candidates (" << Number2Char(number) << " in Box " << box + 1 << "):";
-				for (auto &x: column_elim) {
-					Remove(x.first, x.second, number);
-					ostr << ' ' << Row2Char(x.first) << Column2Char(x.second) << "!=" << Number2Char(number);
+				ostr << "Locked Candidates (" << Number2String(number) << " in Box " << box + 1 << "):";
+				for (size_t cell: column_elim) {
+					Remove(cell, number);
+					ostr << ' ' << Cell2String(cell) << "!=" << Number2String(number);
 				}
 				return make_pair(ostr.str(), false);
 			}
@@ -206,13 +206,13 @@ Technique::HintType Lock::LockedCandidates() {
 }
 
 namespace {
-	static const string pair_name[11] = {"", "", "Pair", "Triple", "Quad",
-		"Pent", "Hex", "Sept", "Oct", "Nov", "Dec"};
+	static const string pair_name[11] = {"", "", "Pair", "Triple", "Quad", "Pent", "Hex", "Sept", "Oct", "Nov", "Dec"};
 }
 
-Technique::HintType Lock::NakedPair(size_t pair_size) {
+Technique::HintType Lock::HiddenPair(size_t pair_size) {
 	string name = pair_size < 11 ? pair_name[pair_size]
 		: string("Pair") + Num2Str(pair_size);
+
 	for (size_t box = 0; box < size; ++box) {
 		vector<size_t> num_available;
 		for (size_t number = 1; number <= size; ++number) {
@@ -225,8 +225,6 @@ Technique::HintType Lock::NakedPair(size_t pair_size) {
 			continue;
 		}
 
-		size_t r = box / m * m;
-		size_t c = box % m * n;
 		vector<bool> set(blank_size);
 		for (size_t i = 0; i < pair_size; ++i) {
 			set[i] = true;
@@ -236,26 +234,217 @@ Technique::HintType Lock::NakedPair(size_t pair_size) {
 			for (size_t i = 0; i < blank_size; ++i) {
 				(set[i] ? contain : not_contain).push_back(num_available[i]);
 			}
-			vector<bool> g(size, true);
-			size_t count = blank_size;
-			for (size_t i = 0; i < m; ++i) for (size_t j = 0; j < n; ++j) {
-				if (board[(r + i) * size + (c + j)] == 0) {
+			vector<size_t> g;
+			for (size_t cell: box_index[box]) {
+				for (size_t number: contain) {
+					if ((*this)(cell, number)) {
+						g.push_back(cell);
+						break;
+					}
+				}
+			}
+			if (g.size() == pair_size) {
+				vector<size_t> elim;
+				for (size_t cell: g) {
 					for (size_t number: not_contain) {
-						if ((*this)(r + i, c + j, number)) {
-							--count;
-							g[i * n + j] = false;
+						if ((*this)(cell, number)) {
+							elim.push_back(cell);
 							break;
 						}
+					}
+				}
+				if (!elim.empty()) {
+					difficulty += 100 + 20 * (pair_size - 2);
+					ostringstream ostr;
+					ostr << "Hidden " << name << " (";
+					for (size_t number: contain) {
+						ostr << Number2String(number);
+					}
+					ostr << " in Box " << box + 1 << "):";
+					for (size_t cell: elim) {
+						ostr << ' ' << Cell2String(cell) << "!=";
+						for (size_t number: not_contain) {
+							if ((*this)(cell, number)) {
+								Remove(cell, number);
+								ostr << Number2String(number);
+							}
+						}
+					}
+					return make_pair(ostr.str(), false);
+				}
+			}
+		} while (NextCombination(set));
+	}
+
+	for (size_t row = 0; row < size; ++row) {
+		vector<size_t> num_available;
+		for (size_t number = 1; number <= size; ++number) {
+			if (row_count[row][number - 1] > 0) {
+				num_available.push_back(number);
+			}
+		}
+		size_t blank_size = num_available.size();
+		if (pair_size > blank_size / 2) {
+			continue;
+		}
+
+		vector<bool> set(blank_size);
+		for (size_t i = 0; i < pair_size; ++i) {
+			set[i] = true;
+		}
+		do {
+			vector<size_t> contain, not_contain;
+			for (size_t i = 0; i < blank_size; ++i) {
+				(set[i] ? contain : not_contain).push_back(num_available[i]);
+			}
+			vector<size_t> column;
+			for (size_t i = 0; i < size; ++i) {
+				for (size_t number: contain) {
+					if ((*this)(row, i, number)) {
+						column.push_back(i);
+						break;
+					}
+				}
+			}
+			if (column.size() == pair_size) {
+				vector<size_t> elim;
+				for (size_t c: column) {
+					for (size_t number: not_contain) {
+						if ((*this)(row, c, number)) {
+							elim.push_back(row * size + c);
+							break;
+						}
+					}
+				}
+				if (!elim.empty()) {
+					difficulty += 100 + 20 * (pair_size - 2);
+					ostringstream ostr;
+					ostr << "Hidden " << name << " (";
+					for (size_t number: contain) {
+						ostr << Number2String(number);
+					}
+					ostr << " in Row " << Row2String(row) << "):";
+					for (size_t cell: elim) {
+						ostr << ' ' << Cell2String(cell) << "!=";
+						for (size_t number: not_contain) {
+							if ((*this)(cell, number)) {
+								Remove(cell, number);
+								ostr << Number2String(number);
+							}
+						}
+					}
+					return make_pair(ostr.str(), false);
+				}
+			}
+		} while (NextCombination(set));
+	}
+
+	for (size_t column = 0; column < size; ++column) {
+		vector<size_t> num_available;
+		for (size_t number = 1; number <= size; ++number) {
+			if (column_count[column][number - 1] > 0) {
+				num_available.push_back(number);
+			}
+		}
+		size_t blank_size = num_available.size();
+		if (pair_size > blank_size / 2) {
+			continue;
+		}
+
+		vector<bool> set(blank_size);
+		for (size_t i = 0; i < pair_size; ++i) {
+			set[i] = true;
+		}
+		do {
+			vector<size_t> contain, not_contain;
+			for (size_t i = 0; i < blank_size; ++i) {
+				(set[i] ? contain : not_contain).push_back(num_available[i]);
+			}
+			vector<size_t> row;
+			for (size_t i = 0; i < size; ++i) {
+				for (size_t number: contain) {
+					if ((*this)(i, column, number)) {
+						row.push_back(i);
+						break;
+					}
+				}
+			}
+			if (row.size() == pair_size) {
+				vector<size_t> elim;
+				for (size_t r: row) {
+					for (size_t number: not_contain) {
+						if ((*this)(r, column, number)) {
+							elim.push_back(r * size + column);
+							break;
+						}
+					}
+				}
+				if (!elim.empty()) {
+					difficulty += 100 + 20 * (pair_size - 2);
+					ostringstream ostr;
+					ostr << "Hidden " << name << " (";
+					for (size_t number: contain) {
+						ostr << Number2String(number);
+					}
+					ostr << " in Column " << Column2String(column) << "):";
+					for (size_t cell: elim) {
+						ostr << ' ' << Cell2String(cell) << "!=";
+						for (size_t number: not_contain) {
+							if ((*this)(cell, number)) {
+								Remove(cell, number);
+								ostr << Number2String(number);
+							}
+						}
+					}
+					return make_pair(ostr.str(), false);
+				}
+			}
+		} while (NextCombination(set));
+	}
+
+	return make_pair("", false);
+}
+
+Technique::HintType Lock::NakedPair(size_t pair_size) {
+	string name = pair_size < 11 ? pair_name[pair_size] : string("Pair") + Num2Str(pair_size);
+	for (size_t box = 0; box < size; ++box) {
+		vector<size_t> num_available;
+		for (size_t number = 1; number <= size; ++number) {
+			if (box_count[box][number - 1] > 0) {
+				num_available.push_back(number);
+			}
+		}
+		size_t blank_size = num_available.size();
+		if (pair_size > blank_size / 2) {
+			continue;
+		}
+
+		vector<bool> set(blank_size);
+		for (size_t i = 0; i < pair_size; ++i) {
+			set[i] = true;
+		}
+		do {
+			vector<size_t> contain, not_contain;
+			for (size_t i = 0; i < blank_size; ++i) {
+				(set[i] ? contain : not_contain).push_back(num_available[i]);
+			}
+			vector<bool> g(size * size, true);
+			size_t count = blank_size;
+			for (size_t cell: box_index[box]) if (board[cell] == 0) {
+				for (size_t number: not_contain) {
+					if ((*this)(cell, number)) {
+						--count;
+						g[(cell / size % m) * n + (cell % size % n)] = false;
+						break;
 					}
 				}
 			}
 			if (count == pair_size) {
 				vector<size_t> elim;
-				for (size_t i = 0; i < size; ++i) if (!g[i]) {
+				for (size_t cell: box_index[box]) if (!g[cell]) {
 					for (size_t number: contain) {
-						if ((*this)(r + i / n, c + i % n, number)) {
-							elim.push_back((r + i / n) * size + (c + i % n));
-							break;
+						if ((*this)(cell, number)) {
+							elim.push_back(cell);
 						}
 					}
 				}
@@ -264,15 +453,15 @@ Technique::HintType Lock::NakedPair(size_t pair_size) {
 					ostringstream ostr;
 					ostr << "Naked " << name << " (";
 					for (size_t number: contain) {
-						ostr << Number2Char(number);
+						ostr << Number2String(number);
 					}
 					ostr << " in Box " << box + 1 << "):";
 					for (size_t cell: elim) {
-						ostr << ' ' << Row2Char(cell / size) << Column2Char(cell % size) << "!=";
+						ostr << ' ' << Cell2String(cell) << "!=";
 						for (size_t number: contain) {
 							if ((*this)(cell, number)) {
 								Remove(cell, number);
-								ostr << Number2Char(number);
+								ostr << Number2String(number);
 							}
 						}
 					}
@@ -319,7 +508,7 @@ Technique::HintType Lock::NakedPair(size_t pair_size) {
 				for (size_t i = 0; i < size; ++i) if (!column[i]) {
 					for (size_t number: contain) {
 						if ((*this)(row, i, number)) {
-							elim.push_back(i);
+							elim.push_back(row * size + i);
 							break;
 						}
 					}
@@ -329,15 +518,15 @@ Technique::HintType Lock::NakedPair(size_t pair_size) {
 					ostringstream ostr;
 					ostr << "Naked " << name << " (";
 					for (size_t number: contain) {
-						ostr << Number2Char(number);
+						ostr << Number2String(number);
 					}
-					ostr << " in Row " << Row2Char(row) << "):";
-					for (size_t column: elim) {
-						ostr << ' ' << Row2Char(row) << Column2Char(column) << "!=";
+					ostr << " in Row " << Row2String(row) << "):";
+					for (size_t cell: elim) {
+						ostr << ' ' << Cell2String(cell) << "!=";
 						for (size_t number: contain) {
-							if ((*this)(row, column, number)) {
-								Remove(row, column, number);
-								ostr << Number2Char(number);
+							if ((*this)(cell, number)) {
+								Remove(cell, number);
+								ostr << Number2String(number);
 							}
 						}
 					}
@@ -384,7 +573,7 @@ Technique::HintType Lock::NakedPair(size_t pair_size) {
 				for (size_t i = 0; i < size; ++i) if (!row[i]) {
 					for (size_t number: contain) {
 						if ((*this)(i, column, number)) {
-							elim.push_back(i);
+							elim.push_back(i * size + column);
 							break;
 						}
 					}
@@ -394,215 +583,15 @@ Technique::HintType Lock::NakedPair(size_t pair_size) {
 					ostringstream ostr;
 					ostr << "Naked " << name << " (";
 					for (size_t number: contain) {
-						ostr << Number2Char(number);
+						ostr << Number2String(number);
 					}
-					ostr << " in Column " << Column2Char(column) << "):";
-					for (size_t row: elim) {
-						ostr << ' ' << Row2Char(row) << Column2Char(column) << "!=";
+					ostr << " in Column " << Column2String(column) << "):";
+					for (size_t cell: elim) {
+						ostr << ' ' << Cell2String(cell) << "!=";
 						for (size_t number: contain) {
-							if ((*this)(row, column, number)) {
-								Remove(row, column, number);
-								ostr << Number2Char(number);
-							}
-						}
-					}
-					return make_pair(ostr.str(), false);
-				}
-			}
-		} while (NextCombination(set));
-	}
-
-	return make_pair("", false);
-}
-
-Technique::HintType Lock::HiddenPair(size_t pair_size) {
-	string name = pair_size < 11 ? pair_name[pair_size]
-		: string("Pair") + Num2Str(pair_size);
-
-	for (size_t box = 0; box < size; ++box) {
-		vector<size_t> num_available;
-		for (size_t number = 1; number <= size; ++number) {
-			if (box_count[box][number - 1] > 0) {
-				num_available.push_back(number);
-			}
-		}
-		size_t blank_size = num_available.size();
-		if (pair_size > blank_size / 2) {
-			continue;
-		}
-
-		size_t r = box / m * m;
-		size_t c = box % m * n;
-		vector<bool> set(blank_size);
-		for (size_t i = 0; i < pair_size; ++i) {
-			set[i] = true;
-		}
-		do {
-			vector<size_t> contain, not_contain;
-			for (size_t i = 0; i < blank_size; ++i) {
-				(set[i] ? contain : not_contain).push_back(num_available[i]);
-			}
-			vector<size_t> g;
-			for (size_t i = 0; i < m; ++i) for (size_t j = 0; j < n; ++j) {
-				for (size_t number: contain) {
-					if ((*this)(r + i, c + j, number)) {
-						g.push_back(i * n + j);
-						break;
-					}
-				}
-			}
-			if (g.size() == pair_size) {
-				vector<size_t> elim;
-				for (size_t i: g) {
-					for (size_t number: not_contain) {
-						if ((*this)(r + i / n, c + i % n, number)) {
-							elim.push_back(i);
-							break;
-						}
-					}
-				}
-				if (!elim.empty()) {
-					difficulty += 100 + 20 * (pair_size - 2);
-					ostringstream ostr;
-					ostr << "Hidden " << name << " (";
-					for (size_t number: contain) {
-						ostr << Number2Char(number);
-					}
-					ostr << " in Box " << box + 1 << "):";
-					for (size_t k: elim) {
-						size_t row = r + k / n;
-						size_t column = c + k % n;
-						ostr << ' ' << Row2Char(row) << Column2Char(column) << "!=";
-						for (size_t number: not_contain) {
-							if ((*this)(row, column, number)) {
-								Remove(row, column, number);
-								ostr << Number2Char(number);
-							}
-						}
-					}
-					return make_pair(ostr.str(), false);
-				}
-			}
-		} while (NextCombination(set));
-	}
-
-	for (size_t row = 0; row < size; ++row) {
-		vector<size_t> num_available;
-		for (size_t number = 1; number <= size; ++number) {
-			if (row_count[row][number - 1] > 0) {
-				num_available.push_back(number);
-			}
-		}
-		size_t blank_size = num_available.size();
-		if (pair_size > blank_size / 2) {
-			continue;
-		}
-
-		vector<bool> set(blank_size);
-		for (size_t i = 0; i < pair_size; ++i) {
-			set[i] = true;
-		}
-		do {
-			vector<size_t> contain, not_contain;
-			for (size_t i = 0; i < blank_size; ++i) {
-				(set[i] ? contain : not_contain).push_back(num_available[i]);
-			}
-			vector<size_t> column;
-			for (size_t i = 0; i < size; ++i) {
-				for (size_t number: contain) {
-					if ((*this)(row, i, number)) {
-						column.push_back(i);
-						break;
-					}
-				}
-			}
-			if (column.size() == pair_size) {
-				vector<size_t> elim;
-				for (size_t c: column) {
-					for (size_t number: not_contain) {
-						if ((*this)(row, c, number)) {
-							elim.push_back(c);
-							break;
-						}
-					}
-				}
-				if (!elim.empty()) {
-					difficulty += 100 + 20 * (pair_size - 2);
-					ostringstream ostr;
-					ostr << "Hidden " << name << " (";
-					for (size_t number: contain) {
-						ostr << Number2Char(number);
-					}
-					ostr << " in Row " << Row2Char(row) << "):";
-					for (size_t column: elim) {
-						ostr << ' ' << Row2Char(row) << Column2Char(column) << "!=";
-						for (size_t number: not_contain) {
-							if ((*this)(row, column, number)) {
-								Remove(row, column, number);
-								ostr << Number2Char(number);
-							}
-						}
-					}
-					return make_pair(ostr.str(), false);
-				}
-			}
-		} while (NextCombination(set));
-	}
-
-	for (size_t column = 0; column < size; ++column) {
-		vector<size_t> num_available;
-		for (size_t number = 1; number <= size; ++number) {
-			if (column_count[column][number - 1] > 0) {
-				num_available.push_back(number);
-			}
-		}
-		size_t blank_size = num_available.size();
-		if (pair_size > blank_size / 2) {
-			continue;
-		}
-
-		vector<bool> set(blank_size);
-		for (size_t i = 0; i < pair_size; ++i) {
-			set[i] = true;
-		}
-		do {
-			vector<size_t> contain, not_contain;
-			for (size_t i = 0; i < blank_size; ++i) {
-				(set[i] ? contain : not_contain).push_back(num_available[i]);
-			}
-			vector<size_t> row;
-			for (size_t i = 0; i < size; ++i) {
-				for (size_t number: contain) {
-					if ((*this)(i, column, number)) {
-						row.push_back(i);
-						break;
-					}
-				}
-			}
-			if (row.size() == pair_size) {
-				vector<size_t> elim;
-				for (size_t r: row) {
-					for (size_t number: not_contain) {
-						if ((*this)(r, column, number)) {
-							elim.push_back(r);
-							break;
-						}
-					}
-				}
-				if (!elim.empty()) {
-					difficulty += 100 + 20 * (pair_size - 2);
-					ostringstream ostr;
-					ostr << "Hidden " << name << " (";
-					for (size_t number: contain) {
-						ostr << Number2Char(number);
-					}
-					ostr << " in Column " << Column2Char(column) << "):";
-					for (size_t row: elim) {
-						ostr << ' ' << Row2Char(row) << Column2Char(column) << "!=";
-						for (size_t number: not_contain) {
-							if ((*this)(row, column, number)) {
-								Remove(row, column, number);
-								ostr << Number2Char(number);
+							if ((*this)(cell, number)) {
+								Remove(cell, number);
+								ostr << Number2String(number);
 							}
 						}
 					}

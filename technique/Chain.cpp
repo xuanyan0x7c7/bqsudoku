@@ -1,7 +1,5 @@
-#include <algorithm>
 #include <deque>
 #include <functional>
-#include <set>
 #include <sstream>
 #include <unordered_map>
 #include "Chain.h"
@@ -10,9 +8,7 @@ using std::hash;
 using std::make_pair;
 using std::ostringstream;
 using std::pair;
-using std::set;
 using std::size_t;
-using std::sort;
 using std::string;
 using std::unordered_map;
 using std::vector;
@@ -51,86 +47,6 @@ namespace std {
 			return h;
 		}
 	};
-}
-
-vector<size_t> Chain::CommonEffectCell(size_t r1, size_t c1, size_t r2, size_t c2) const {
-	vector<size_t> vec;
-	if (r1 == r2) {
-		if (c1 == c2) {
-			set<size_t> s;
-			for (size_t cell: row_index[r1]) {
-				s.insert(cell);
-			}
-			for (size_t cell: column_index[c1]) {
-				s.insert(cell);
-			}
-			for (size_t cell: box_index[r1 / m * m + c1 / n]) {
-				s.insert(cell);
-			}
-			s.erase(r1 * size + c1);
-			for (size_t cell: s) {
-				vec.push_back(cell);
-			}
-		} else {
-			for (size_t column = 0; column < size; ++column) {
-				if (column != c1 && column != c2) {
-					vec.push_back(r1 * size + column);
-				}
-			}
-		}
-	} else if (c1 == c2) {
-		for (size_t row = 0; row < size; ++row) {
-			if (row != r1 && row != r2) {
-				vec.push_back(row * size + c1);
-			}
-		}
-	} else if (r1 / m == r2 / m) {
-		if (c1 / n == c2 / n) {
-			for (size_t cell: box_index[r1 / m * m + c1 / n]) {
-				if ((!row_contain[r1][cell] || !column_contain[c1][cell]) && (!row_contain[r2][cell] || !column_contain[c2][cell])) {
-					vec.push_back(cell);
-				}
-			}
-		} else {
-			for (size_t c = 0; c < n; ++c) {
-				vec.push_back(r1 * size + (c2 / n * n + c));
-				vec.push_back(r2 * size + (c1 / n * n + c));
-			}
-		}
-	} else if (c1 / n == c2 / n) {
-		for (size_t r = 0; r < m; ++r) {
-			vec.push_back((r1 / m * m + r) * size + c2);
-			vec.push_back((r2 / m * m + r) * size + c1);
-		}
-	} else {
-		vec.push_back(r1 * size + c2);
-		vec.push_back(r2 * size + c1);
-	}
-
-	sort(vec.begin(), vec.end());
-	return vec;
-}
-
-vector<size_t> Chain::CommonEffectCell(size_t r1, size_t c1, size_t n1, size_t r2, size_t c2, size_t n2) const {
-	vector<size_t> vec;
-	if (n1 == n2) {
-		vec = CommonEffectCell(r1, c1, r2, c2);
-		for (size_t &cell: vec) {
-			cell = cell * size + n1 - 1;
-		}
-	} else if (r1 == r2 && c1 == c2) {
-		for (size_t number = 1; number <= size; ++number) {
-			if (number != n1 && number != n2) {
-				vec.push_back((r1 * size + c1) * size + number - 1);
-			}
-		}
-	} else if (weak_chain[r1 * size * size + c1 * size][r2 * size * size + c2 * size]) {
-		vec.push_back((r1 * size + c1) * size + n2 - 1);
-		vec.push_back((r2 * size + c2) * size + n1 - 1);
-		sort(vec.begin(), vec.end());
-	}
-
-	return vec;
 }
 
 vector<size_t> Chain::CommonEffectCell(const Group &g1, const Group &g2) const {
@@ -212,14 +128,14 @@ string Chain::Chain2String(const vector<Group> &chain) {
 			difficulty += 1500 + 100 * Log2(chain.size() - 2);
 			ostr << "X-Chain (";
 			number = chain.front().front() % size + 1;
-			ostr << Number2Char(number) << " of ";
+			ostr << Number2String(number) << " of ";
 			for (const Group &group: chain) {
 				size_t num = group.front();
 				is_strong_link = !is_strong_link;
 				if (num != chain.front().front()) {
 					ostr << (is_strong_link ? "==" : "--");
 				}
-				ostr << Row2Char(num / (size * size)) << Column2Char(num / size % size);
+				ostr << Cell2String(num / size);
 			}
 			ostr << "):";
 			break;
@@ -227,14 +143,14 @@ string Chain::Chain2String(const vector<Group> &chain) {
 			difficulty += 1500 + 100 * Log2(chain.size() - 4);
 			ostr << "Nice X-Loop (";
 			number = chain.front().front() % size + 1;
-			ostr << Number2Char(number) << " of ";
+			ostr << Number2String(number) << " of ";
 			for (const Group &group: chain) {
 				size_t num = group.front();
 				is_strong_link = !is_strong_link;
 				if (num != chain.front().front()) {
 					ostr << (is_strong_link ? "==" : "--");
 				}
-				ostr << Row2Char(num / (size * size)) << Column2Char(num / size % size);
+				ostr << Cell2String(num / size);
 			}
 			ostr << "):";
 			break;
@@ -246,8 +162,8 @@ string Chain::Chain2String(const vector<Group> &chain) {
 					ostr << "--";
 				}
 				size_t num = iter->front();
-				ostr << Row2Char(num / (size * size)) << Column2Char(num / size % size) << '(' << Number2Char(num % size + 1) << "==";
-				ostr << Number2Char((++iter)->front() % size + 1) << ')';
+				ostr << Cell2String(num / size) << '(' << Number2String(num % size + 1) << "==";
+				ostr << Number2String((++iter)->front() % size + 1) << ')';
 			}
 			ostr << "):";
 			break;
@@ -263,7 +179,7 @@ string Chain::Chain2String(const vector<Group> &chain) {
 				if (num != chain.front().front()) {
 					ostr << (is_strong_link ? "==" : "--");
 				}
-				ostr << Row2Char(num / (size * size)) << Column2Char(num / size % size) << '(' << Number2Char(num % size + 1) << ')';
+				ostr << Cell2String(num / size) << '(' << Number2String(num % size + 1) << ')';
 			}
 			ostr << "):";
 			break;
@@ -279,7 +195,7 @@ string Chain::Chain2String(const vector<Group> &chain) {
 				if (num != chain.front().front()) {
 					ostr << (is_strong_link ? "==" : "--");
 				}
-				ostr << Row2Char(num / (size * size)) << Column2Char(num / size % size) << '(' << Number2Char(num % size + 1) << ')';
+				ostr << Cell2String(num / size) << '(' << Number2String(num % size + 1) << ')';
 			}
 			ostr << "):";
 			break;
@@ -287,24 +203,24 @@ string Chain::Chain2String(const vector<Group> &chain) {
 			difficulty += 1500 + 150 * Log2(chain.size() - 2);
 			ostr << "Grouped X-Chain (";
 			number = chain.front().front() % size + 1;
-			ostr << Number2Char(number) << " of ";
+			ostr << Number2String(number) << " of ";
 			for (const Group &group: chain) {
 				is_strong_link = !is_strong_link;
 				if (group.front() != chain.front().front()) {
 					ostr << (is_strong_link ? "==" : "--");
 				}
 				if (group.size() == 1) {
-					ostr << Row2Char(group.front() / (size * size)) << Column2Char(group.front() / size % size);
+					ostr << Row2String(group.front() / (size * size)) << Column2String(group.front() / size % size);
 				} else if (group.front() / (size * size) == group.back() / (size * size)) {
-					ostr << Row2Char(group.front() / (size * size));
+					ostr << Row2String(group.front() / (size * size));
 					for (size_t num: group) {
-						ostr << Column2Char(num / size % size);
+						ostr << Column2String(num / size % size);
 					}
 				} else {
 					for (size_t num: group) {
-						ostr << Row2Char(num / (size * size));
+						ostr << Row2String(num / (size * size));
 					}
-					ostr << Column2Char(group.front() / size % size);
+					ostr << Column2String(group.front() / size % size);
 				}
 			}
 			ostr << "):";
@@ -313,24 +229,24 @@ string Chain::Chain2String(const vector<Group> &chain) {
 			difficulty += 1500 + 150 * Log2(chain.size() - 4);
 			ostr << "Grouped Nice X-Loop (";
 			number = chain.front().front() % size + 1;
-			ostr << Number2Char(number) << " of ";
+			ostr << Number2String(number) << " of ";
 			for (const Group &group: chain) {
 				is_strong_link = !is_strong_link;
 				if (group.front() != chain.front().front()) {
 					ostr << (is_strong_link ? "==" : "--");
 				}
 				if (group.size() == 1) {
-					ostr << Row2Char(group.front() / (size * size)) << Column2Char(group.front() / size % size);
+					ostr << Row2String(group.front() / (size * size)) << Column2String(group.front() / size % size);
 				} else if (group.front() / (size * size) == group.back() / (size * size)) {
-					ostr << Row2Char(group.front() / (size * size));
+					ostr << Row2String(group.front() / (size * size));
 					for (size_t num: group) {
-						ostr << Column2Char(num / size % size);
+						ostr << Column2String(num / size % size);
 					}
 				} else {
 					for (size_t num: group) {
-						ostr << Row2Char(num / (size * size));
+						ostr << Row2String(num / (size * size));
 					}
-					ostr << Column2Char(group.front() / size % size);
+					ostr << Column2String(group.front() / size % size);
 				}
 			}
 			ostr << "):";
@@ -347,19 +263,19 @@ string Chain::Chain2String(const vector<Group> &chain) {
 					ostr << (is_strong_link ? "==" : "--");
 				}
 				if (group.size() == 1) {
-					ostr << Row2Char(group.front() / (size * size)) << Column2Char(group.front() / size % size);
+					ostr << Row2String(group.front() / (size * size)) << Column2String(group.front() / size % size);
 				} else if (group.front() / (size * size) == group.back() / (size * size)) {
-					ostr << Row2Char(group.front() / (size * size));
+					ostr << Row2String(group.front() / (size * size));
 					for (size_t num: group) {
-						ostr << Column2Char(num / size % size);
+						ostr << Column2String(num / size % size);
 					}
 				} else {
 					for (size_t num: group) {
-						ostr << Row2Char(num / (size * size));
+						ostr << Row2String(num / (size * size));
 					}
-					ostr << Column2Char(group.front() / size % size);
+					ostr << Column2String(group.front() / size % size);
 				}
-				ostr << '(' << Number2Char(group.front() % size + 1) << ')';
+				ostr << '(' << Number2String(group.front() % size + 1) << ')';
 			}
 			ostr << "):";
 			break;
@@ -375,19 +291,19 @@ string Chain::Chain2String(const vector<Group> &chain) {
 					ostr << (is_strong_link ? "==" : "--");
 				}
 				if (group.size() == 1) {
-					ostr << Row2Char(group.front() / (size * size)) << Column2Char(group.front() / size % size);
+					ostr << Row2String(group.front() / (size * size)) << Column2String(group.front() / size % size);
 				} else if (group.front() / (size * size) == group.back() / (size * size)) {
-					ostr << Row2Char(group.front() / (size * size));
+					ostr << Row2String(group.front() / (size * size));
 					for (size_t num: group) {
-						ostr << Column2Char(num / size % size);
+						ostr << Column2String(num / size % size);
 					}
 				} else {
 					for (size_t num: group) {
-						ostr << Row2Char(num / (size * size));
+						ostr << Row2String(num / (size * size));
 					}
-					ostr << Column2Char(group.front() / size % size);
+					ostr << Column2String(group.front() / size % size);
 				}
-				ostr << '(' << Number2Char(group.front() % size + 1) << ')';
+				ostr << '(' << Number2String(group.front() % size + 1) << ')';
 			}
 			ostr << "):";
 			break;
@@ -460,10 +376,10 @@ Technique::HintType Chain::Skyscraper() {
 					if (!elim.empty()) {
 						difficulty += 1500;
 						ostringstream ostr;
-						ostr << "Skyscraper (" << Number2Char(number) << " in Row " << Row2Char(row1) << Row2Char(row2) << "):";
+						ostr << "Skyscraper (" << Number2String(number) << " in Row " << Row2String(row1) << Row2String(row2) << "):";
 						for (size_t cell: elim) {
 							Remove(cell, number);
-							ostr << ' ' << Row2Char(cell / size) << Column2Char(cell % size) << "!=" << Number2Char(number);
+							ostr << ' ' << Cell2String(cell) << "!=" << Number2String(number);
 						}
 						return make_pair(ostr.str(), false);
 					}
@@ -513,10 +429,10 @@ Technique::HintType Chain::Skyscraper() {
 					if (!elim.empty()) {
 						difficulty += 1500;
 						ostringstream ostr;
-						ostr << "Skyscraper (" << Number2Char(number) << " in Column " << Column2Char(column1) << Column2Char(column2) << "):";
+						ostr << "Skyscraper (" << Number2String(number) << " in Column " << Column2String(column1) << Column2String(column2) << "):";
 						for (size_t cell: elim) {
 							Remove(cell, number);
-							ostr << ' ' << Row2Char(cell / size) << Column2Char(cell % size) << "!=" << Number2Char(number);
+							ostr << ' ' << Cell2String(cell) << "!=" << Number2String(number);
 						}
 						return make_pair(ostr.str(), false);
 					}
@@ -569,8 +485,8 @@ Technique::HintType Chain::_2StringKite() {
 							Remove(row22, column12, number);
 							difficulty += 2000;
 							ostringstream ostr;
-							ostr << "2 String Kite (" << Number2Char(number) << " in Row " << Row2Char(row1) << " Column " << Column2Char(column2)
-								<< "): " << Row2Char(row22) << Column2Char(column12) << "!=" << Number2Char(number);
+							ostr << "2 String Kite (" << Number2String(number) << " in Row " << Row2String(row1) << " Column " << Column2String(column2)
+								<< "): " << Cell2String(row22 * size + column12) << "!=" << Number2String(number);
 							return make_pair(ostr.str(), false);
 						}
 					} else if (column2 / n == column12 / n
@@ -579,8 +495,8 @@ Technique::HintType Chain::_2StringKite() {
 							Remove(row22, column11, number);
 							difficulty += 0x2000;
 							ostringstream ostr;
-							ostr << "2 String Kite (" << Number2Char(number) << " in Row " << Row2Char(row1) << " Column " << Column2Char(column2)
-								<< "): " << Row2Char(row22) << Column2Char(column11) << "!=" << Number2Char(number);
+							ostr << "2 String Kite (" << Number2String(number) << " in Row " << Row2String(row1) << " Column " << Column2String(column2)
+								<< "): " << Cell2String(row22 * size + column11) << "!=" << Number2String(number);
 							return make_pair(ostr.str(), false);
 						}
 					}
@@ -590,8 +506,8 @@ Technique::HintType Chain::_2StringKite() {
 							Remove(row21, column12, number);
 							difficulty += 2000;
 							ostringstream ostr;
-							ostr << "2 String Kite (" << Number2Char(number) << " in Row " << Row2Char(row1) << " Column " << Column2Char(column2)
-								<< "): " << Row2Char(row21) << Column2Char(column12) << "!=" << Number2Char(number);
+							ostr << "2 String Kite (" << Number2String(number) << " in Row " << Row2String(row1) << " Column " << Column2String(column2)
+								<< "): " << Cell2String(row21 * size + column12) << "!=" << Number2String(number);
 							return make_pair(ostr.str(), false);
 						}
 					} else if (column2 / n == column12 / n
@@ -600,8 +516,8 @@ Technique::HintType Chain::_2StringKite() {
 							Remove(row21, column11, number);
 							difficulty += 2000;
 							ostringstream ostr;
-							ostr << "2 String Kite (" << Number2Char(number) << " in Row " << Row2Char(row1) << " Column " << Column2Char(column2)
-								<< "): " << Row2Char(row21) << Column2Char(column11) << "!=" << Number2Char(number);
+							ostr << "2 String Kite (" << Number2String(number) << " in Row " << Row2String(row1) << " Column " << Column2String(column2)
+								<< "): " << Cell2String(row21 * size + column11) << "!=" << Number2String(number);
 							return make_pair(ostr.str(), false);
 						}
 					}
@@ -667,8 +583,9 @@ Technique::HintType Chain::TurbotFish() {
 							Remove(row12, column22, number);
 							difficulty += 2000;
 							ostringstream ostr;
-							ostr << "Turbot Fish (" << Number2Char(number) << " in Box " << boxes[b].first + 1 << " and Row " << Row2Char(row2) << "): "
-								<< Row2Char(row12) << Column2Char(column22) << "!=" << Number2Char(number);
+							ostr << "Turbot Fish ("
+								<< Number2String(number) << " in Box " << boxes[b].first + 1 << " and Row " << Row2String(row2) << "): "
+								<< Cell2String(row12 * size + column22) << "!=" << Number2String(number);
 							return make_pair(ostr.str(), false);
 						}
 					}
@@ -678,8 +595,9 @@ Technique::HintType Chain::TurbotFish() {
 							Remove(row12, column21, number);
 							difficulty += 2000;
 							ostringstream ostr;
-							ostr << "Turbot Fish (" << Number2Char(number) << " in Box " << boxes[b].first + 1 << " and Row " << Row2Char(row2) << "): "
-								<< Row2Char(row12) << Column2Char(column21) << "!=" << Number2Char(number);
+							ostr << "Turbot Fish ("
+								<< Number2String(number) << " in Box " << boxes[b].first + 1 << " and Row " << Row2String(row2) << "): "
+								<< Cell2String(row12 * size + column21) << "!=" << Number2String(number);
 							return make_pair(ostr.str(), false);
 						}
 					}
@@ -689,8 +607,9 @@ Technique::HintType Chain::TurbotFish() {
 							Remove(row11, column22, number);
 							difficulty += 2000;
 							ostringstream ostr;
-							ostr << "Turbot Fish (" << Number2Char(number) << " in Box " << boxes[b].first + 1 << " and Row " << Row2Char(row2) << "): "
-								<< Row2Char(row11) << Column2Char(column22) << "!=" << Number2Char(number);
+							ostr << "Turbot Fish ("
+								<< Number2String(number) << " in Box " << boxes[b].first + 1 << " and Row " << Row2String(row2) << "): "
+								<< Cell2String(row11 * size + column22) << "!=" << Number2String(number);
 							return make_pair(ostr.str(), false);
 						}
 					}
@@ -700,8 +619,9 @@ Technique::HintType Chain::TurbotFish() {
 							Remove(row11, column21, number);
 							difficulty += 2000;
 							ostringstream ostr;
-							ostr << "Turbot Fish (" << Number2Char(number) << " in Box " << boxes[b].first + 1 << " and Row " << Row2Char(row2) << "): "
-								<< Row2Char(row11) << Column2Char(column21) << "!=" << Number2Char(number);
+							ostr << "Turbot Fish ("
+								<< Number2String(number) << " in Box " << boxes[b].first + 1 << " and Row " << Row2String(row2) << "): "
+								<< Cell2String(row11 * size + column21) << "!=" << Number2String(number);
 							return make_pair(ostr.str(), false);
 						}
 					}
@@ -717,9 +637,9 @@ Technique::HintType Chain::TurbotFish() {
 							Remove(row22, column12, number);
 							difficulty += 2000;
 							ostringstream ostr;
-							ostr << "Turbot Fish (" << Number2Char(number)
-								<< " in Box " << boxes[b].first + 1 << " and Column " << Column2Char(column2) << "): "
-								<< Row2Char(row22) << Column2Char(column12) << "!=" << Number2Char(number);
+							ostr << "Turbot Fish (" << Number2String(number)
+								<< " in Box " << boxes[b].first + 1 << " and Column " << Column2String(column2) << "): "
+								<< Cell2String(row22 * size + column12) << "!=" << Number2String(number);
 							return make_pair(ostr.str(), false);
 						}
 					}
@@ -729,9 +649,9 @@ Technique::HintType Chain::TurbotFish() {
 							Remove(row21, column12, number);
 							difficulty += 2000;
 							ostringstream ostr;
-							ostr << "Turbot Fish (" << Number2Char(number)
-								<< " in Box " << boxes[b].first + 1 << " and Column " << Column2Char(column2) << "): "
-								<< Row2Char(row21) << Column2Char(column12) << "!=" << Number2Char(number);
+							ostr << "Turbot Fish (" << Number2String(number)
+								<< " in Box " << boxes[b].first + 1 << " and Column " << Column2String(column2) << "): "
+								<< Cell2String(row21 * size + column12) << "!=" << Number2String(number);
 							return make_pair(ostr.str(), false);
 						}
 					}
@@ -741,9 +661,9 @@ Technique::HintType Chain::TurbotFish() {
 							Remove(row22, column11, number);
 							difficulty += 2000;
 							ostringstream ostr;
-							ostr << "Turbot Fish (" << Number2Char(number)
-								<< " in Box " << boxes[b].first + 1 << " and Column " << Column2Char(column2) << "): "
-								<< Row2Char(row22) << Column2Char(column11) << "!=" << Number2Char(number);
+							ostr << "Turbot Fish (" << Number2String(number)
+								<< " in Box " << boxes[b].first + 1 << " and Column " << Column2String(column2) << "): "
+								<< Cell2String(row22 * size + column11) << "!=" << Number2String(number);
 							return make_pair(ostr.str(), false);
 						}
 					}
@@ -753,9 +673,9 @@ Technique::HintType Chain::TurbotFish() {
 							Remove(row21, column11, number);
 							difficulty += 2000;
 							ostringstream ostr;
-							ostr << "Turbot Fish (" << Number2Char(number)
-								<< " in Box " << boxes[b].first << " and Column " << Column2Char(column2) << "): "
-								<< Row2Char(row21) << Column2Char(column11) << "!=" << Number2Char(number);
+							ostr << "Turbot Fish (" << Number2String(number)
+								<< " in Box " << boxes[b].first << " and Column " << Column2String(column2) << "): "
+								<< Cell2String(row21 * size + column11) << "!=" << Number2String(number);
 							return make_pair(ostr.str(), false);
 						}
 					}
@@ -1076,8 +996,7 @@ Technique::HintType Chain::ForcingChain() {
 								ostr << Chain2String(new_vector1);
 								for (size_t cell: elim) {
 									Remove(cell);
-									ostr << ' ' << Row2Char(cell / (size * size)) << Column2Char(cell / size % size)
-										<< "!=" << Number2Char(cell % size + 1);
+									ostr << ' ' << Cell2String(cell / size) << "!=" << Number2String(cell % size + 1);
 								}
 								return make_pair(ostr.str(), false);
 							}
@@ -1120,8 +1039,7 @@ Technique::HintType Chain::ForcingChain() {
 								ostr << Chain2String(new_vector1);
 								for (size_t cell: elim) {
 									Remove(cell);
-									ostr << ' ' << Row2Char(cell / (size * size)) << Column2Char(cell / size % size)
-										<< "!=" << Number2Char(cell % size + 1);
+									ostr << ' ' << Cell2String(cell / size) << "!=" << Number2String(cell % size + 1);
 								}
 								return make_pair(ostr.str(), false);
 							}
@@ -1164,8 +1082,7 @@ Technique::HintType Chain::ForcingChain() {
 								ostr << Chain2String(new_vector1);
 								for (size_t cell: elim) {
 									Remove(cell);
-									ostr << ' ' << Row2Char(cell / (size * size)) << Column2Char(cell / size % size)
-										<< "!=" << Number2Char(cell % size + 1);
+									ostr << ' ' << Cell2String(cell / size) << "!=" << Number2String(cell % size + 1);
 								}
 								return make_pair(ostr.str(), false);
 							}
@@ -1208,8 +1125,7 @@ Technique::HintType Chain::ForcingChain() {
 								ostr << Chain2String(new_vector1);
 								for (size_t cell: elim) {
 									Remove(cell);
-									ostr << ' ' << Row2Char(cell / (size * size)) << Column2Char(cell / size % size)
-										<< "!=" << Number2Char(cell % size + 1);
+									ostr << ' ' << Cell2String(cell / size) << "!=" << Number2String(cell % size + 1);
 								}
 								return make_pair(ostr.str(), false);
 							}

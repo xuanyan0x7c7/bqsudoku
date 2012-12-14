@@ -15,6 +15,6 @@ public:
 	virtual HintType GetHint();
 private:
 	HintType LockedCandidates();
-	HintType NakedPair(size_t);
 	HintType HiddenPair(size_t);
+	HintType NakedPair(size_t);
 };

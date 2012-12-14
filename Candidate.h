@@ -10,10 +10,11 @@ class Candidate: public Sudoku {
 	friend class Technique;
 protected:
 	std::vector<std::vector<bool>> candidate;
-	std::vector<std::vector<size_t>> row_count, column_count, box_count;
-	std::vector<size_t> cell_count;
-	std::vector<std::vector<size_t>> row_index, column_index, box_index;
+	std::vector<std::vector<std::size_t>> row_count, column_count, box_count;
+	std::vector<std::size_t> cell_count;
+	std::vector<std::vector<std::size_t>> row_index, column_index, box_index;
 	std::vector<std::vector<bool>> row_contain, column_contain, box_contain;
+	std::vector<std::size_t> row_blank, column_blank, box_blank;
 	std::vector<std::vector<bool>> weak_chain;
 	int difficulty;
 public:
@@ -52,15 +53,15 @@ inline std::vector<bool>::reference Candidate::operator ()(std::size_t row, std:
 	return candidate[row * size + column][number - 1];
 }
 
-inline void Candidate::Fill(size_t index, size_t number) {
+inline void Candidate::Fill(std::size_t index, std::size_t number) {
 	Fill(index / size, index % size, number);
 }
 
-inline void Candidate::Remove(size_t number) {
+inline void Candidate::Remove(std::size_t number) {
 	Remove(number / (size * size), number / size % size, number % size + 1);
 }
 
-inline void Candidate::Remove(size_t index, size_t number) {
+inline void Candidate::Remove(std::size_t index, std::size_t number) {
 	Remove(index / size, index % size, number);
 }
 

@@ -44,7 +44,7 @@ Technique::HintType Single::_Single() {
 			Fill(row, column, number);
 			++difficulty;
 			ostringstream ostr;
-			ostr << "Single: " << Row2Char(row) << Column2Char(column) << '=' << Number2Char(number);
+			ostr << "Single: " << Cell2String(row * size + column) << '=' << Number2String(number);
 			return make_pair(ostr.str(), true);
 		}
 	}
@@ -64,7 +64,7 @@ Technique::HintType Single::_Single() {
 			Fill(row, column, number);
 			++difficulty;
 			ostringstream ostr;
-			ostr << "Single: " << Row2Char(row) << Column2Char(column) << '=' << Number2Char(number);
+			ostr << "Single: " << Cell2String(row * size + column) << '=' << Number2String(number);
 			return make_pair(ostr.str(), true);
 		}
 	}
@@ -84,7 +84,7 @@ Technique::HintType Single::_Single() {
 			Fill(row, column, number);
 			++difficulty;
 			ostringstream ostr;
-			ostr << "Single: " << Row2Char(row) << Column2Char(column) << '=' << Number2Char(number);
+			ostr << "Single: " << Cell2String(row * size + column) << '=' << Number2String(number);
 			return make_pair(ostr.str(), true);
 		}
 	}
@@ -107,7 +107,7 @@ Technique::HintType Single::HiddenSingle() {
 				Fill(row, column, number);
 				difficulty += 10;
 				ostringstream ostr;
-				ostr << "Hidden Single (Box " << box + 1 << "): " << Row2Char(row) << Column2Char(column) << '=' << Number2Char(number);
+				ostr << "Hidden Single (Box " << box + 1 << "): " << Cell2String(row * size + column) << '=' << Number2String(number);
 				return make_pair(ostr.str(), true);
 			}
 		}
@@ -126,7 +126,7 @@ Technique::HintType Single::HiddenSingle() {
 				Fill(row, column, number);
 				difficulty += 20;
 				ostringstream ostr;
-				ostr << "Hidden Single (Row " << Row2Char(row) << "): " << Row2Char(row) << Column2Char(column) << '=' << Number2Char(number);
+				ostr << "Hidden Single (Row " << Row2String(row) << "): " << Cell2String(row * size + column) << '=' << Number2String(number);
 				return make_pair(ostr.str(), true);
 			}
 		}
@@ -145,7 +145,7 @@ Technique::HintType Single::HiddenSingle() {
 				Fill(row, column, number);
 				difficulty += 20;
 				ostringstream ostr;
-				ostr << "Hidden Single (Column " << Column2Char(column) << "): " << Row2Char(row) << Column2Char(column) << '=' << Number2Char(number);
+				ostr << "Hidden Single (Column " << Column2String(column) << "): " << Cell2String(row * size + column) << '=' << Number2String(number);
 				return make_pair(ostr.str(), true);
 			}
 		}
@@ -155,14 +155,14 @@ Technique::HintType Single::HiddenSingle() {
 }
 
 Technique::HintType Single::NakedSingle() {
-	for (size_t pos = 0; pos < size * size; ++pos) {
-		if (cell_count[pos] == 1) {
+	for (size_t cell = 0; cell < size * size; ++cell) {
+		if (cell_count[cell] == 1) {
 			size_t number = 0;
-			while (!(*this)(pos, ++number));
-			Fill(pos, number);
+			while (!(*this)(cell, ++number));
+			Fill(cell, number);
 			difficulty += 100;
 			ostringstream ostr;
-			ostr << "Naked Single: " << Row2Char(pos / size) << Column2Char(pos % size) << '=' << Number2Char(number);
+			ostr << "Naked Single: " << Cell2String(cell) << '=' << Number2String(number);
 			return make_pair(ostr.str(), true);
 		}
 	}

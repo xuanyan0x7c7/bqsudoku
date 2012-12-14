@@ -7,7 +7,7 @@
 
 class Sudoku: protected SudokuBase {
 protected:
-	std::vector<size_t> board;
+	std::vector<std::size_t> board;
 	std::vector<bool> given;
 public:
 	Sudoku(const Sudoku&);

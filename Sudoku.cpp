@@ -54,15 +54,15 @@ ostream& operator <<(ostream &ostr, const Sudoku &sudoku) {
 				for (size_t l = 0; l < n; ++l) {
 					size_t row = i * m + j;
 					size_t column = k * n + l;
-					char number = sudoku.Number2Char(sudoku(row, column));
+					string str = sudoku.Number2String(sudoku(row, column));
 #ifdef SHOW_COLOR
 					if (sudoku.given[row * sudoku.size + column]) {
-						ostr << "\033[31m" << number << "\033[0m";
+						ostr << "\033[31m" << str << "\033[0m";
 					} else {
-						ostr << number;
+						ostr << str;
 					}
 #else
-					ostr << number;
+					ostr << str;
 #endif
 					ostr << ' ';
 				}

@@ -1,5 +1,5 @@
 #pragma once
-#include <cstdlib>
+#include <string>
 
 
 class SudokuBase {
@@ -14,28 +14,33 @@ public:
 	~SudokuBase();
 public:
 	SudokuBase();
-	SudokuBase(size_t);
-	SudokuBase(size_t, size_t);
+	SudokuBase(std::size_t);
+	SudokuBase(std::size_t, std::size_t);
 protected:
-	inline char Row2Char(std::size_t) const;
-	inline char Column2Char(std::size_t) const;
-	inline char Number2Char(std::size_t) const;
+	inline std::string Row2String(std::size_t) const;
+	inline std::string Column2String(std::size_t) const;
+	inline std::string Cell2String(std::size_t) const;
+	inline std::string Number2String(std::size_t) const;
 };
 
-inline char SudokuBase::Row2Char(std::size_t row) const {
-	return static_cast<char>('A' + row);
+inline std::string SudokuBase::Row2String(std::size_t row) const {
+	return std::string(1, static_cast<char>('A' + row));
 }
 
-inline char SudokuBase::Column2Char(std::size_t column) const {
-	return static_cast<char>((size <= 9 ? '1' : 'a') + column);
+inline std::string SudokuBase::Column2String(std::size_t column) const {
+	return std::string(1, static_cast<char>((size <= 9 ? '1' : 'a') + column));
 }
 
-inline char SudokuBase::Number2Char(std::size_t number) const {
+inline std::string SudokuBase::Cell2String(std::size_t cell) const {
+	return Row2String(cell / size) + Column2String(cell % size);
+}
+
+inline std::string SudokuBase::Number2String(std::size_t number) const {
 	if (number == 0) {
-		return '.';
+		return ".";
 	} else if (size <= 9) {
-		return static_cast<char>('0' + number);
+		return std::string(1, static_cast<char>('0' + number));
 	} else {
-		return static_cast<char>('A' - 1 + number);
+		return std::string(1, static_cast<char>('A' - 1 + number));
 	}
 }
