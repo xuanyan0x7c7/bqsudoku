@@ -8,6 +8,7 @@ using std::ostringstream;
 using std::set;
 using std::size_t;
 using std::sort;
+using std::swap;
 using std::string;
 using std::vector;
 
@@ -153,6 +154,59 @@ Technique::HintType Unique::UniqueLoop() {
 					ostr << ' ' << Cell2String(cell) << "!=" << Number2String(number);
 				}
 				return make_pair(ostr.str(), false);
+			}
+		} else if (loop.type == 4) {
+			size_t special_cell[2];
+			size_t count = 0;
+			for (size_t cell: loop.cell) {
+				if (cell_count[cell] > 2) {
+					special_cell[count++] = cell;
+				}
+			}
+			if (special_cell[0] > special_cell[1]) {
+				swap(special_cell[0], special_cell[1]);
+			}
+			int elim = 0;
+			if (weak_chain[special_cell[0] * size][special_cell[1] * size]) {
+				if (special_cell[0] / size == special_cell[1] / size) {
+					size_t row = special_cell[0] / size;
+					if (row_count[row][loop.n1 - 1] == 2) {
+						elim = 1;
+					} else if (row_count[row][loop.n2 - 1] == 2) {
+						elim = 2;
+					}
+				} else if (special_cell[0] % size == special_cell[1] % size) {
+					size_t column = special_cell[0] % size;
+					if (column_count[column][loop.n1 - 1] == 2) {
+						elim = 1;
+					} else if (column_count[column][loop.n2 - 1] == 2) {
+						elim = 2;
+					}
+				} else {
+					size_t box = special_cell[0] / size / m * m + special_cell[0] % size / n;
+					if (box_count[box][loop.n1 - 1] == 2) {
+						elim = 1;
+					} else if (box_count[box][loop.n2 - 1] == 2) {
+						elim = 2;
+					}
+				}
+				if (elim > 0) {
+					difficulty += 400 + 50 * Log2(loop.cell.size() - 3);
+					size_t number = elim == 1 ? loop.n2 : loop.n1;
+					Remove(special_cell[0], number);
+					Remove(special_cell[1], number);
+					ostringstream ostr;
+					ostr << "Unique " << (loop.cell.size() == 4 ? "Rectangle" : "Loop") << " Type IV ("
+						<< Number2String(loop.n1) << Number2String(loop.n2) << " in ";
+					for (size_t cell: loop.cell) {
+						ostr << Cell2String(cell) << "--";
+					}
+					ostr << Cell2String(loop.cell.front()) << "):";
+					for (size_t cell: special_cell) {
+						ostr << ' ' << Cell2String(cell) << "!=" << Number2String(number);
+					}
+					return make_pair(ostr.str(), false);
+				}
 			}
 		}
 	}
