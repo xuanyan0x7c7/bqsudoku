@@ -157,7 +157,7 @@ void BruteForceSolver::Search(int depth) {
 void BruteForceSolver::operator ()() {
 	for (size_t i = 0; i < size; ++i) {
 		for (size_t j = 0; j < size; ++j) {
-			size_t number = board[i * size + j];
+			size_t number = grid[i * size + j];
 			if (number > 0) {
 				Remove(i * size + number - 1);
 				Remove(size * size + j * size + number - 1);
@@ -177,7 +177,7 @@ void BruteForceSolver::AnswerFound() {
 				size_t row = i / (size * size);
 				size_t column = (i / size) % size;
 				size_t number = i % size;
-				board[row * size + column] = number + 1;
+				grid[row * size + column] = number + 1;
 			}
 		}
 		answer.push_back(*this);

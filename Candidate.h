@@ -26,12 +26,12 @@ public:
 public:
 	Candidate(const Sudoku&);
 protected:
-	inline std::vector<bool>::reference operator ()(std::size_t);
 	inline std::vector<bool>::reference operator ()(std::size_t, std::size_t);
 	inline std::vector<bool>::reference operator ()(std::size_t, std::size_t, std::size_t);
+	inline bool operator ()(std::size_t, std::size_t) const;
+	inline bool operator ()(std::size_t, std::size_t, std::size_t) const;
 	inline void Fill(std::size_t, std::size_t);
 	void Fill(std::size_t, std::size_t, std::size_t);
-	inline void Remove(std::size_t);
 	inline void Remove(std::size_t, std::size_t);
 	void Remove(std::size_t, std::size_t, std::size_t);
 private:
@@ -41,28 +41,28 @@ public:
 	inline int Difficulty() const;
 };
 
-inline std::vector<bool>::reference Candidate::operator ()(std::size_t number) {
-	return candidate[number / size][number % size];
-}
-
-inline std::vector<bool>::reference Candidate::operator ()(std::size_t index, std::size_t number) {
-	return candidate[index][number - 1];
+inline std::vector<bool>::reference Candidate::operator ()(std::size_t cell, std::size_t number) {
+	return candidate[cell][number - 1];
 }
 
 inline std::vector<bool>::reference Candidate::operator ()(std::size_t row, std::size_t column, std::size_t number) {
 	return candidate[row * size + column][number - 1];
 }
 
-inline void Candidate::Fill(std::size_t index, std::size_t number) {
-	Fill(index / size, index % size, number);
+inline bool Candidate::operator ()(std::size_t cell, std::size_t number) const {
+	return candidate[cell][number - 1];
 }
 
-inline void Candidate::Remove(std::size_t number) {
-	Remove(number / (size * size), number / size % size, number % size + 1);
+inline bool Candidate::operator ()(std::size_t row, std::size_t column, std::size_t number) const {
+	return candidate[row * size + column][number - 1];
 }
 
-inline void Candidate::Remove(std::size_t index, std::size_t number) {
-	Remove(index / size, index % size, number);
+inline void Candidate::Fill(std::size_t cell, std::size_t number) {
+	Fill(cell / size, cell % size, number);
+}
+
+inline void Candidate::Remove(std::size_t cell, std::size_t number) {
+	Remove(cell / size, cell % size, number);
 }
 
 inline int Candidate::Difficulty() const {

@@ -4,8 +4,10 @@
 #include <unordered_map>
 #include "Chain.h"
 using std::deque;
+using std::function;
 using std::hash;
 using std::make_pair;
+using std::mem_fn;
 using std::ostringstream;
 using std::pair;
 using std::size_t;
@@ -47,6 +49,18 @@ namespace std {
 			return h;
 		}
 	};
+}
+
+Technique::HintType Chain::GetHint() {
+	static const function<HintType(Chain&)> algs[4]
+		= {mem_fn(&Chain::Skyscraper), mem_fn(&Chain::_2StringKite), mem_fn(&Chain::TurbotFish), mem_fn(&Chain::ForcingChain)};
+	for (const auto &alg: algs) {
+		HintType hint = alg(*this);
+		if (!hint.first.empty()) {
+			return hint;
+		}
+	}
+	return make_pair("", false);
 }
 
 vector<size_t> Chain::CommonEffectCell(const Group &g1, const Group &g2) const {
@@ -312,24 +326,6 @@ string Chain::Chain2String(const vector<Group> &chain) {
 	}
 
 	return ostr.str();
-}
-
-Technique::HintType Chain::GetHint() {
-	Technique::HintType hint;
-	hint = Skyscraper();
-	if (!hint.first.empty()) {
-		return hint;
-	}
-	hint = _2StringKite();
-	if (!hint.first.empty()) {
-		return hint;
-	}
-	hint = TurbotFish();
-	if (!hint.first.empty()) {
-		return hint;
-	}
-	hint = ForcingChain();
-	return hint;
 }
 
 Technique::HintType Chain::Skyscraper() {

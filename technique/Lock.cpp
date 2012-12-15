@@ -430,7 +430,7 @@ Technique::HintType Lock::NakedPair(size_t pair_size) {
 			}
 			vector<bool> g(size * size, true);
 			size_t count = blank_size;
-			for (size_t cell: box_index[box]) if (board[cell] == 0) {
+			for (size_t cell: box_index[box]) if (grid[cell] == 0) {
 				for (size_t number: not_contain) {
 					if ((*this)(cell, number)) {
 						--count;
@@ -494,7 +494,7 @@ Technique::HintType Lock::NakedPair(size_t pair_size) {
 			}
 			vector<bool> column(size, true);
 			size_t count = blank_size;
-			for (size_t i = 0; i < size; ++i) if (board[row * size + i] == 0) {
+			for (size_t i = 0; i < size; ++i) if (grid[row * size + i] == 0) {
 				for (size_t number: not_contain) {
 					if ((*this)(row, i, number)) {
 						--count;
@@ -559,7 +559,7 @@ Technique::HintType Lock::NakedPair(size_t pair_size) {
 			}
 			vector<bool> row(size, true);
 			size_t count = blank_size;
-			for (size_t i = 0; i < size; ++i) if (board[i * size + column] == 0) {
+			for (size_t i = 0; i < size; ++i) if (grid[i * size + column] == 0) {
 				for (size_t number: not_contain) {
 					if ((*this)(i, column, number)) {
 						--count;

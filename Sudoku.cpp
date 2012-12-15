@@ -14,7 +14,7 @@ Sudoku::~Sudoku() = default;
 
 Sudoku::Sudoku(): Sudoku(3, 3) {}
 Sudoku::Sudoku(size_t n): Sudoku(n, n) {}
-Sudoku::Sudoku(size_t m, size_t n): SudokuBase(m, n), board(size * size), given(size * size) {}
+Sudoku::Sudoku(size_t m, size_t n): SudokuBase(m, n), grid(size * size), given(size * size) {}
 Sudoku::Sudoku(size_t n, const string &str): Sudoku(n, n, str) {}
 
 Sudoku::Sudoku(size_t m, size_t n, const string &str): Sudoku(m, n) {
@@ -22,16 +22,16 @@ Sudoku::Sudoku(size_t m, size_t n, const string &str): Sudoku(m, n) {
 		if (str[i] != '.' && str[i] != '0') {
 			given[i] = true;
 			if (isdigit(str[i])) {
-				board[i] = str[i] - '0';
+				grid[i] = str[i] - '0';
 			} else {
-				board[i] = toupper(str[i]) - 'A' + 1;
+				grid[i] = toupper(str[i]) - 'A' + 1;
 			}
 		}
 	}
 }
 
 bool Sudoku::Solved() const {
-	for (size_t x: board) {
+	for (size_t x: grid) {
 		if (x == 0) {
 			return false;
 		}

@@ -68,8 +68,8 @@ Candidate::Candidate(const Sudoku &sudoku): Sudoku(sudoku),
 	}
 
 	for (size_t i = 0; i < size * size; ++i) {
-		if (board[i] != 0) {
-			Fill(i, board[i]);
+		if (grid[i] != 0) {
+			Fill(i, grid[i]);
 		}
 	}
 
@@ -85,7 +85,7 @@ void Candidate::Fill(size_t row, size_t column, size_t number) {
 	--column_blank[column];
 	--box_blank[row / m * m + column / n];
 	size_t index = row * size + column;
-	board[index] = number;
+	grid[index] = number;
 	for (size_t i = 0; i < size; ++i) {
 		Remove(row, i, number);
 		Remove(i, column, number);

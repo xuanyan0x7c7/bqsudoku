@@ -15,7 +15,7 @@ Technique& Technique::operator =(const Technique&) = delete;
 Technique& Technique::operator =(Technique&&) = delete;
 Technique::~Technique() = default;
 
-Technique::Technique(Candidate &sudoku): SudokuBase(sudoku.m, sudoku.n), board(sudoku.board), given(sudoku.given), candidate(sudoku.candidate),
+Technique::Technique(Candidate &sudoku): SudokuBase(sudoku.m, sudoku.n), grid(sudoku.grid), given(sudoku.given), candidate(sudoku.candidate),
 	row_count(sudoku.row_count), column_count(sudoku.column_count), box_count(sudoku.box_count), cell_count(sudoku.cell_count),
 	row_index(sudoku.row_index), column_index(sudoku.column_index), box_index(sudoku.box_index),
 	row_contain(sudoku.weak_chain), column_contain(sudoku.column_contain), box_contain(sudoku.box_contain),
@@ -27,7 +27,7 @@ void Technique::Fill(size_t row, size_t column, size_t number) {
 	--column_blank[column];
 	--box_blank[row / m * m + column / n];
 	size_t index = row * size + column;
-	board[index] = number;
+	grid[index] = number;
 	for (size_t i = 0; i < size; ++i) {
 		Remove(row, i, number);
 		Remove(i, column, number);

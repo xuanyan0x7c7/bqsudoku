@@ -1,5 +1,8 @@
+#include <functional>
 #include <sstream>
 #include "Single.h"
+using std::function;
+using std::mem_fn;
 using std::ostringstream;
 using std::size_t;
 using std::make_pair;
@@ -14,17 +17,15 @@ Single::~Single() = default;
 Single::Single(Candidate &sudoku): Technique(sudoku) {}
 
 Technique::HintType Single::GetHint() {
-	HintType hint;
-	hint = _Single();
-	if (!hint.first.empty()) {
-		return hint;
+	static const function<HintType(Single&)> algs[3]
+		= {mem_fn(&Single::_Single), mem_fn(&Single::HiddenSingle), mem_fn(&Single::NakedSingle)};
+	for (const auto &alg: algs) {
+		HintType hint = alg(*this);
+		if (!hint.first.empty()) {
+			return hint;
+		}
 	}
-	hint = HiddenSingle();
-	if (!hint.first.empty()) {
-		return hint;
-	}
-	hint = NakedSingle();
-	return hint;
+	return make_pair("", false);
 }
 
 Technique::HintType Single::_Single() {
@@ -32,7 +33,7 @@ Technique::HintType Single::_Single() {
 		size_t count = 0;
 		size_t row, column;
 		for (size_t cell: box_index[box]) {
-			if (board[cell] == 0) {
+			if (grid[cell] == 0) {
 				++count;
 				row = cell / size;
 				column = cell % size;
@@ -53,7 +54,7 @@ Technique::HintType Single::_Single() {
 		size_t count = 0;
 		size_t column;
 		for (size_t cell: row_index[row]) {
-			if (board[cell] == 0) {
+			if (grid[cell] == 0) {
 				++count;
 				column = cell % size;
 			}
@@ -73,7 +74,7 @@ Technique::HintType Single::_Single() {
 		size_t count = 0;
 		size_t row;
 		for (size_t cell: column_index[column]) {
-			if (board[cell] == 0) {
+			if (grid[cell] == 0) {
 				++count;
 				row = cell / size;
 			}

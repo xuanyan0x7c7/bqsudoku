@@ -7,7 +7,7 @@
 
 class Sudoku: protected SudokuBase {
 protected:
-	std::vector<std::size_t> board;
+	std::vector<std::size_t> grid;
 	std::vector<bool> given;
 public:
 	Sudoku(const Sudoku&);
@@ -30,9 +30,9 @@ public:
 };
 
 inline std::size_t& Sudoku::operator ()(std::size_t row, std::size_t column) {
-	return board[row * size + column];
+	return grid[row * size + column];
 }
 
 inline std::size_t Sudoku::operator ()(std::size_t row, std::size_t column) const {
-	return board[row * size + column];
+	return grid[row * size + column];
 }

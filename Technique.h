@@ -9,7 +9,7 @@ class Candidate;
 
 class Technique: protected SudokuBase {
 protected:
-	std::vector<std::size_t> &board;
+	std::vector<std::size_t> &grid;
 	const std::vector<bool> &given;
 protected:
 	std::vector<std::vector<bool>> &candidate;
@@ -52,8 +52,8 @@ inline std::vector<bool>::reference Technique::operator ()(std::size_t number) {
 	return candidate[number / size][number % size];
 }
 
-inline std::vector<bool>::reference Technique::operator ()(std::size_t index, std::size_t number) {
-	return candidate[index][number - 1];
+inline std::vector<bool>::reference Technique::operator ()(std::size_t cell, std::size_t number) {
+	return candidate[cell][number - 1];
 }
 
 inline std::vector<bool>::reference Technique::operator ()(std::size_t row, std::size_t column, std::size_t number) {
@@ -64,24 +64,24 @@ inline bool Technique::operator ()(std::size_t number) const {
 	return candidate[number / size][number % size];
 }
 
-inline bool Technique::operator ()(std::size_t index, std::size_t number) const {
-	return candidate[index][number - 1];
+inline bool Technique::operator ()(std::size_t cell, std::size_t number) const {
+	return candidate[cell][number - 1];
 }
 
 inline bool Technique::operator ()(std::size_t row, std::size_t column, std::size_t number) const {
 	return candidate[number / size][number % size];
 }
 
-inline void Technique::Fill(std::size_t index, std::size_t number) {
-	Fill(index / size, index % size, number);
+inline void Technique::Fill(std::size_t cell, std::size_t number) {
+	Fill(cell / size, cell % size, number);
 }
 
 inline void Technique::Remove(std::size_t number) {
 	Remove(number / (size * size), number / size % size, number % size + 1);
 }
 
-inline void Technique::Remove(std::size_t index, std::size_t number) {
-	Remove(index / size, index % size, number);
+inline void Technique::Remove(std::size_t cell, std::size_t number) {
+	Remove(cell / size, cell % size, number);
 }
 
 inline std::vector<size_t> Technique::CommonEffectCell(size_t n1, size_t n2) const {

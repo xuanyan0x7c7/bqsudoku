@@ -11,6 +11,13 @@ public:
 	~Chain();
 public:
 	Chain(Candidate&);
+public:
+	virtual HintType GetHint();
+private:
+	HintType Skyscraper();
+	HintType _2StringKite();
+	HintType TurbotFish();
+	HintType ForcingChain();
 private:
 	enum struct ChainType {
 		XChain, NiceXLoop, XYChain, AIC, NiceLoop, GroupedXChain, GroupedNiceXLoop, GroupedAIC, GroupedNiceLoop
@@ -21,11 +28,4 @@ private:
 	bool IsWeakChain(const Group&, const Group&) const;
 	ChainType GetChainType(const std::vector<Group>&) const;
 	std::string Chain2String(const std::vector<Group>&);
-public:
-	virtual HintType GetHint();
-private:
-	HintType Skyscraper();
-	HintType _2StringKite();
-	HintType TurbotFish();
-	HintType ForcingChain();
 };

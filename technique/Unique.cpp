@@ -1,11 +1,12 @@
 #include <algorithm>
-#include <set>
+#include <functional>
 #include <sstream>
 #include "Unique.h"
+using std::function;
 using std::make_pair;
+using std::mem_fn;
 using std::move;
 using std::ostringstream;
-using std::set;
 using std::size_t;
 using std::sort;
 using std::swap;
@@ -33,11 +34,15 @@ Unique::~Unique() = default;
 Unique::Unique(Candidate &sudoku): Technique(sudoku) {}
 
 Technique::HintType Unique::GetHint() {
-	Technique::HintType hint = UniqueLoop();
-	if (!hint.first.empty()) {
-		return hint;
+	static const function<HintType(Unique&)> algs[3]
+		= {mem_fn(&Unique::UniqueLoop), mem_fn(&Unique::AvoidableRectangle), mem_fn(&Unique::BivalueUniversalGrave)};
+	for (const auto &alg: algs) {
+		HintType hint = alg(*this);
+		if (!hint.first.empty()) {
+			return hint;
+		}
 	}
-	return hint = BivalueUniversalGrave();
+	return make_pair("", false);
 }
 
 const vector<size_t>& Unique::RegionIndex(size_t region) const {
@@ -72,8 +77,9 @@ Technique::HintType Unique::UniqueLoop() {
 				}
 			}
 			Loop loop;
+			loop.set.resize(size * size);
 			loop.cell.push_back(i);
-			loop.set.insert(i);
+			loop.set[i] = true;
 			loop.n1 = n[0];
 			loop.n2 = n[1];
 			FindLoop(unique_loop, loop, 2, vector<bool>(size), -1);
@@ -167,50 +173,46 @@ Technique::HintType Unique::UniqueLoop() {
 				swap(special_cell[0], special_cell[1]);
 			}
 			int elim = 0;
-			if (weak_chain[special_cell[0] * size][special_cell[1] * size]) {
-				if (special_cell[0] / size == special_cell[1] / size) {
-					size_t row = special_cell[0] / size;
-					if (row_count[row][loop.n1 - 1] == 2) {
-						elim = 1;
-					} else if (row_count[row][loop.n2 - 1] == 2) {
-						elim = 2;
-					}
-				} else if (special_cell[0] % size == special_cell[1] % size) {
-					size_t column = special_cell[0] % size;
-					if (column_count[column][loop.n1 - 1] == 2) {
-						elim = 1;
-					} else if (column_count[column][loop.n2 - 1] == 2) {
-						elim = 2;
-					}
-				} else {
-					size_t box = special_cell[0] / size / m * m + special_cell[0] % size / n;
-					if (box_count[box][loop.n1 - 1] == 2) {
-						elim = 1;
-					} else if (box_count[box][loop.n2 - 1] == 2) {
-						elim = 2;
+			for (int i: {0, 1}) {
+				size_t row = special_cell[i] / size;
+				size_t column = special_cell[i] % size;
+				size_t regions[3] = {row / m * m + column / n, size + row, 2 * size + column};
+				bool ok = true;
+				for (size_t region: regions) {
+					if (RegionCount(region)[(i == 0 ? loop.n1 : loop.n2) - 1] != 2) {
+						ok = false;
+						break;
 					}
 				}
-				if (elim > 0) {
-					difficulty += 400 + 50 * Log2(loop.cell.size() - 3);
-					size_t number = elim == 1 ? loop.n2 : loop.n1;
-					Remove(special_cell[0], number);
-					Remove(special_cell[1], number);
-					ostringstream ostr;
-					ostr << "Unique " << (loop.cell.size() == 4 ? "Rectangle" : "Loop") << " Type IV ("
-						<< Number2String(loop.n1) << Number2String(loop.n2) << " in ";
-					for (size_t cell: loop.cell) {
-						ostr << Cell2String(cell) << "--";
-					}
-					ostr << Cell2String(loop.cell.front()) << "):";
-					for (size_t cell: special_cell) {
-						ostr << ' ' << Cell2String(cell) << "!=" << Number2String(number);
-					}
-					return make_pair(ostr.str(), false);
+				if (ok) {
+					elim = i + 1;
+					break;
 				}
+			}
+			if (elim > 0) {
+				difficulty += 400 + 50 * Log2(loop.cell.size() - 3);
+				size_t number = elim == 1 ? loop.n2 : loop.n1;
+				Remove(special_cell[0], number);
+				Remove(special_cell[1], number);
+				ostringstream ostr;
+				ostr << "Unique " << (loop.cell.size() == 4 ? "Rectangle" : "Loop") << " Type IV ("
+					<< Number2String(loop.n1) << Number2String(loop.n2) << " in ";
+				for (size_t cell: loop.cell) {
+					ostr << Cell2String(cell) << "--";
+				}
+				ostr << Cell2String(loop.cell.front()) << "):";
+				for (size_t cell: special_cell) {
+					ostr << ' ' << Cell2String(cell) << "!=" << Number2String(number);
+				}
+				return make_pair(ostr.str(), false);
 			}
 		}
 	}
 
+	return make_pair("", false);
+}
+
+Technique::HintType Unique::AvoidableRectangle() {
 	return make_pair("", false);
 }
 
@@ -282,7 +284,7 @@ void Unique::FindLoop(vector<Loop> &results, Loop &loop, size_t allowed, const v
 							break;
 					}
 				}
-			} else if (loop.set.find(cell) == loop.set.end()) {
+			} else if (!loop.set[cell]) {
 				vector<bool> new_extra(extra);
 				if ((*this)(cell, loop.n1) && (*this)(cell, loop.n2)) {
 					for (size_t number = 1; number <= size; ++number) {
@@ -296,28 +298,28 @@ void Unique::FindLoop(vector<Loop> &results, Loop &loop, size_t allowed, const v
 					}
 					if (cell_count[cell] == 2 || extra_size == 1 || allowed > 0) {
 						loop.cell.push_back(cell);
-						loop.set.insert(cell);
+						loop.set[cell] = true;
 						FindLoop(results, loop, cell_count[cell] > 2 ? allowed - 1 : allowed, new_extra, i);
 					}
 				}
 			}
 		}
 	}
-	loop.set.erase(loop.cell.back());
+	loop.set[loop.cell.back()] = false;
 	loop.cell.pop_back();
 }
 
 int Unique::GetType(const Loop &loop) const {
-	set<size_t> odd, even;
+	vector<bool> odd(3 * size), even(3 * size);
 	bool is_odd = false;
 	for (size_t cell: loop.cell) {
 		size_t row = cell / size;
 		size_t column = cell % size;
 		size_t regions[3] = {row / m * m + column / n, size + row, 2 * size + column};
 		for (size_t region: regions) {
-			set<size_t> &s = is_odd ? odd : even;
-			if (s.find(region) == s.end()) {
-				s.insert(region);
+			vector<bool> &s = is_odd ? odd : even;
+			if (!s[region]) {
+				s[region] = true;
 			} else {
 				return 0;
 			}
