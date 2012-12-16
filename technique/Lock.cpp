@@ -60,87 +60,6 @@ Technique::HintType Lock::GetHint() {
 }
 
 Technique::HintType Lock::LockedCandidates() {
-	for (size_t row = 0; row < size; ++row) {
-		for (size_t number = 1; number <= size; ++number) {
-			vector<size_t> count(m);
-			size_t sum = 0;
-			size_t column;
-			for (size_t i = 0; i < size; ++i) {
-				if ((*this)(row, i, number)) {
-					++count[i / n];
-					++sum;
-					column = i;
-				}
-			}
-			if (sum == 0) {
-				continue;
-			}
-			vector<size_t> elim;
-			for (size_t i = 0; i < m; ++i) if (count[i] == sum) {
-				for (size_t r = 0; r < m; ++r) if (r != row % m) {
-					for (size_t c = 0; c < n; ++c) {
-						size_t cell = (row / m * m + r) * size + (column / n * n + c);
-						if ((*this)(cell, number)) {
-							elim.push_back(cell);
-						}
-					}
-				}
-				break;
-			}
-			if (!elim.empty()) {
-				difficulty += 100;
-				ostringstream ostr;
-				ostr << "Locked Candidates (" << Number2String(number) << " in Row " << Row2String(row) << "):";
-				for (size_t cell: elim) {
-					Remove(cell, number);
-					ostr << ' ' << Cell2String(cell) << "!=" << Number2String(number);
-				}
-				return make_pair(ostr.str(), false);
-			}
-		}
-	}
-
-	for (size_t column = 0; column < size; ++column) {
-		for (size_t number = 1; number <= size; ++number) {
-			vector<size_t> count(n);
-			size_t sum = 0;
-			size_t row;
-			for (size_t i = 0; i < size; ++i) {
-				if ((*this)(i, column, number)) {
-					++count[i / m];
-					++sum;
-					row = i;
-				}
-			}
-			if (sum == 0) {
-				continue;
-			}
-			vector<size_t> elim;
-			for (size_t i = 0; i < n; ++i) if (count[i] == sum) {
-				for (size_t c = 0; c < n; ++c) if (c != column % n) {
-					for (size_t r = 0; r < m; ++r) {
-						size_t cell = (row / m * m + r) * size + (column / n * n + c);
-						if ((*this)(cell, number)) {
-							elim.push_back(cell);
-						}
-					}
-				}
-				break;
-			}
-			if (!elim.empty()) {
-				difficulty += 100;
-				ostringstream ostr;
-				ostr << "Locked Candidates (" << Number2String(number)
-					<< " in Column " << Column2String(column) << "):";
-				for (size_t cell: elim) {
-					Remove(cell, number);
-					ostr << ' ' << Cell2String(cell) << "!=" << Number2String(number);
-				}
-				return make_pair(ostr.str(), false);
-			}
-		}
-	}
-
 	for (size_t box = 0; box < size; ++box) {
 		for (size_t number = 1; number <= size; ++number) {
 			vector<size_t> count_row(m), count_column(n);
@@ -182,7 +101,7 @@ Technique::HintType Lock::LockedCandidates() {
 			if (!row_elim.empty()) {
 				difficulty += 100;
 				ostringstream ostr;
-				ostr << "Locked Candidates (" << Number2String(number) << " in Box " << box + 1 << "):";
+				ostr << "Pointing (" << Number2String(number) << " in Box " << box + 1 << "):";
 				for (size_t cell: row_elim) {
 					Remove(cell, number);
 					ostr << ' ' << Cell2String(cell) << "!=" << Number2String(number);
@@ -192,8 +111,89 @@ Technique::HintType Lock::LockedCandidates() {
 			if (!column_elim.empty()) {
 				difficulty += 100;
 				ostringstream ostr;
-				ostr << "Locked Candidates (" << Number2String(number) << " in Box " << box + 1 << "):";
+				ostr << "Pointing (" << Number2String(number) << " in Box " << box + 1 << "):";
 				for (size_t cell: column_elim) {
+					Remove(cell, number);
+					ostr << ' ' << Cell2String(cell) << "!=" << Number2String(number);
+				}
+				return make_pair(ostr.str(), false);
+			}
+		}
+	}
+
+	for (size_t row = 0; row < size; ++row) {
+		for (size_t number = 1; number <= size; ++number) {
+			vector<size_t> count(m);
+			size_t sum = 0;
+			size_t column;
+			for (size_t i = 0; i < size; ++i) {
+				if ((*this)(row, i, number)) {
+					++count[i / n];
+					++sum;
+					column = i;
+				}
+			}
+			if (sum == 0) {
+				continue;
+			}
+			vector<size_t> elim;
+			for (size_t i = 0; i < m; ++i) if (count[i] == sum) {
+				for (size_t r = 0; r < m; ++r) if (r != row % m) {
+					for (size_t c = 0; c < n; ++c) {
+						size_t cell = (row / m * m + r) * size + (column / n * n + c);
+						if ((*this)(cell, number)) {
+							elim.push_back(cell);
+						}
+					}
+				}
+				break;
+			}
+			if (!elim.empty()) {
+				difficulty += 100;
+				ostringstream ostr;
+				ostr << "Claiming (" << Number2String(number) << " in Row " << Row2String(row) << "):";
+				for (size_t cell: elim) {
+					Remove(cell, number);
+					ostr << ' ' << Cell2String(cell) << "!=" << Number2String(number);
+				}
+				return make_pair(ostr.str(), false);
+			}
+		}
+	}
+
+	for (size_t column = 0; column < size; ++column) {
+		for (size_t number = 1; number <= size; ++number) {
+			vector<size_t> count(n);
+			size_t sum = 0;
+			size_t row;
+			for (size_t i = 0; i < size; ++i) {
+				if ((*this)(i, column, number)) {
+					++count[i / m];
+					++sum;
+					row = i;
+				}
+			}
+			if (sum == 0) {
+				continue;
+			}
+			vector<size_t> elim;
+			for (size_t i = 0; i < n; ++i) if (count[i] == sum) {
+				for (size_t c = 0; c < n; ++c) if (c != column % n) {
+					for (size_t r = 0; r < m; ++r) {
+						size_t cell = (row / m * m + r) * size + (column / n * n + c);
+						if ((*this)(cell, number)) {
+							elim.push_back(cell);
+						}
+					}
+				}
+				break;
+			}
+			if (!elim.empty()) {
+				difficulty += 100;
+				ostringstream ostr;
+				ostr << "Claiming (" << Number2String(number)
+					<< " in Column " << Column2String(column) << "):";
+				for (size_t cell: elim) {
 					Remove(cell, number);
 					ostr << ' ' << Cell2String(cell) << "!=" << Number2String(number);
 				}
@@ -210,8 +210,7 @@ namespace {
 }
 
 Technique::HintType Lock::HiddenPair(size_t pair_size) {
-	string name = pair_size < 11 ? pair_name[pair_size]
-		: string("Pair") + Num2Str(pair_size);
+	string name = pair_size < 11 ? pair_name[pair_size] : string("Pair") + Num2Str(pair_size);
 
 	for (size_t box = 0; box < size; ++box) {
 		vector<size_t> num_available;
@@ -407,6 +406,7 @@ Technique::HintType Lock::HiddenPair(size_t pair_size) {
 
 Technique::HintType Lock::NakedPair(size_t pair_size) {
 	string name = pair_size < 11 ? pair_name[pair_size] : string("Pair") + Num2Str(pair_size);
+
 	for (size_t box = 0; box < size; ++box) {
 		vector<size_t> num_available;
 		for (size_t number = 1; number <= size; ++number) {
@@ -434,7 +434,7 @@ Technique::HintType Lock::NakedPair(size_t pair_size) {
 				for (size_t number: not_contain) {
 					if ((*this)(cell, number)) {
 						--count;
-						g[(cell / size % m) * n + (cell % size % n)] = false;
+						g[cell] = false;
 						break;
 					}
 				}

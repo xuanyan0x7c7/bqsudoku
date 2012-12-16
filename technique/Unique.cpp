@@ -102,22 +102,11 @@ Technique::HintType Unique::UniqueLoop() {
 				ostr << Cell2String(cell) << "--";
 			}
 			ostr << Cell2String(loop.cell.front()) << "): ";
-			if (cell_count[special_cell] == 3) {
-				difficulty += 200 + 50 * Log2(loop.cell.size() - 3);
-				size_t number = 1;
-				while (number == loop.n1 || number == loop.n2 || !(*this)(special_cell, number)) {
-					++number;
-				}
-				Fill(special_cell, number);
-				ostr << Cell2String(special_cell) << '=' << Number2String(number);
-				return make_pair(ostr.str(), true);
-			} else {
-				difficulty += 250 + 50 * Log2(loop.cell.size() - 3);
-				Remove(special_cell, loop.n1);
-				Remove(special_cell, loop.n2);
-				ostr << Cell2String(special_cell) << "!=" << Number2String(loop.n1) << Number2String(loop.n2);
-				return make_pair(ostr.str(), false);
-			}
+			difficulty += 250 + 50 * Log2(loop.cell.size() - 3);
+			Remove(special_cell, loop.n1);
+			Remove(special_cell, loop.n2);
+			ostr << Cell2String(special_cell) << "!=" << Number2String(loop.n1) << Number2String(loop.n2);
+			return make_pair(ostr.str(), false);
 		} else if (loop.type == 2) {
 			vector<size_t> special_cell;
 			for (size_t cell: loop.cell) {
@@ -163,11 +152,15 @@ Technique::HintType Unique::UniqueLoop() {
 			}
 		} else if (loop.type == 4) {
 			size_t special_cell[2];
+			bool place[2];
 			size_t count = 0;
+			bool p = false;
 			for (size_t cell: loop.cell) {
 				if (cell_count[cell] > 2) {
-					special_cell[count++] = cell;
+					special_cell[count] = cell;
+					place[count++] = p;
 				}
+				p = !p;
 			}
 			if (special_cell[0] > special_cell[1]) {
 				swap(special_cell[0], special_cell[1]);
@@ -191,7 +184,7 @@ Technique::HintType Unique::UniqueLoop() {
 			}
 			if (elim > 0) {
 				difficulty += 400 + 50 * Log2(loop.cell.size() - 3);
-				size_t number = elim == 1 ? loop.n2 : loop.n1;
+				size_t number = (elim == 1) ^ place[0] ^ place[1] ? loop.n1 : loop.n2;
 				Remove(special_cell[0], number);
 				Remove(special_cell[1], number);
 				ostringstream ostr;
