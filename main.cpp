@@ -9,25 +9,36 @@ using namespace std;
 
 void CheckUniqueness(const Sudoku&);
 void BruteForce(const Sudoku&);
-void StepByStep(const Sudoku&, bool = true);
+void StepByStep(const Sudoku&, bool = false, bool = true);
 
 int main(int argc, char **argv) {
 	if (argc == 1) {
 		cout << "BQSudoku" << endl;
 		cout << "bqsudoku [option] [file]" << endl;
 		cout << "Option: " << endl;
-		cout << "\t--print / -p\t print sudoku" << endl;
-		cout << "\t--check / -c\t check validity" << endl;
-		cout << "\t--brute / -b\tbrute force solver" << endl;
-		cout << "\t--step / -s\tstep by step solver" << endl;
-		cout << "\t--step-not-unique / --sn\t step by step solver when you can't determine it's uniqueness" << endl;
+		cout << "\t--print / -p\t\t print sudoku" << endl;
+		cout << "\t--check / -c\t\t check validity" << endl;
+		cout << "\t--brute / -b\t\tbrute force solver" << endl;
+		cout << "\t--step / -s\t\tstep by step solver" << endl;
+		cout << "\t--step-multi / -m\t step by step solver when you can't determine it's uniqueness" << endl;
+		cout << "\t-c\t\t\tprint candidates" << endl;
 	} else {
 		size_t l, m, n;
 		string str;
+		bool print_step = false;
 		if (argc == 2) {
 			cin >> l >> m >> n >> str;
 		} else if (argc == 3) {
-			ifstream fin(argv[2]);
+			if (strcmp(argv[2], "-c") == 0) {
+				print_step = true;
+				cin >> l >> m >> n >> str;
+			} else {
+				ifstream fin(argv[2]);
+				fin >> l >> m >> n >> str;
+			}
+		} else if (argc == 4) {
+			print_step = true;
+			ifstream fin(argv[3]);
 			fin >> l >> m >> n >> str;
 		}
 		if (l != m * n) {
@@ -42,9 +53,9 @@ int main(int argc, char **argv) {
 			} else if (strcmp(argv[1], "--brute") == 0 || strcmp(argv[1], "-b") == 0) {
 				BruteForce(sudoku);
 			} else if (strcmp(argv[1], "--step") == 0 || strcmp(argv[1], "-s") == 0) {
-				StepByStep(sudoku);
-			} else if (strcmp(argv[1], "--step-not-unique") == 0 || strcmp(argv[1], "--sn") == 0) {
-				StepByStep(sudoku, false);
+				StepByStep(sudoku, print_step);
+			} else if (strcmp(argv[1], "--step-multi") == 0 || strcmp(argv[1], "-m") == 0) {
+				StepByStep(sudoku, print_step, false);
 			}
 		}
 	}
@@ -75,21 +86,25 @@ void BruteForce(const Sudoku &sudoku) {
 	}
 }
 
-void StepByStep(const Sudoku &sudoku, bool uniqueness) {
+void StepByStep(const Sudoku &sudoku, bool print_step, bool uniqueness) {
 	Candidate sbssudoku(sudoku, uniqueness);
 	bool newline = false;
 	while (!sbssudoku.Solved()) {
 		auto hint = sbssudoku.GetHint();
 		if (!hint.first.empty()) {
-			if (!newline) {
-				cout << endl;
-			}
-			if (hint.second) {
-				cout << hint.first << endl << sbssudoku << endl;
-				newline = false;
+			if (print_step) {
+				cout << endl << hint.first << endl << sbssudoku << endl;
 			} else {
-				newline = true;
-				cout << hint.first << endl;
+				if (!newline) {
+					cout << endl;
+				}
+				if (hint.second) {
+					cout << hint.first << endl << static_cast<Sudoku>(sbssudoku) << endl;
+					newline = false;
+				} else {
+					newline = true;
+					cout << hint.first << endl;
+				}
 			}
 		} else {
 			break;

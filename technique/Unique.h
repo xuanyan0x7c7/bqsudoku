@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <vector>
 #include "../Technique.h"
 
@@ -16,13 +17,13 @@ public:
 	virtual HintType GetHint();
 private:
 	HintType UniqueLoop();
-	HintType AvoidableRectangle(); // I don't know the effecient algorithm of AvoidableLoop
+	HintType AvoidableRectangle(); // I don't know the algorithm of AvoidableLoop
 	HintType BivalueUniversalGrave();
 private:
 	struct Loop {
 		std::vector<std::size_t> cell;
 		std::vector<bool> set;
-		size_t n1, n2;
+		std::array<size_t, 2> var;
 		int type;
 		friend bool operator <(const Loop &l1, const Loop &l2) {
 			return l1.cell.size() < l2.cell.size() || (l1.cell.size() == l2.cell.size() && l1.type < l2.type);

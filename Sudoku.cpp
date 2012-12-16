@@ -1,6 +1,8 @@
 #include <cstring>
+#include <sstream>
 #include "Sudoku.h"
 using std::ostream;
+using std::ostringstream;
 using std::size_t;
 using std::string;
 using std::vector;
@@ -42,12 +44,15 @@ bool Sudoku::Solved() const {
 ostream& operator <<(ostream &ostr, const Sudoku &sudoku) {
 	size_t m = sudoku.m;
 	size_t n = sudoku.n;
+	ostringstream ostrstr;
+	for (size_t i = 0; i < m; ++i) {
+		ostrstr << '+' << string(2 * n + 1, '-');
+	}
+	ostrstr << '+';
+	string fence = ostrstr.str();
+
 	for (size_t i = 0; i < n; ++i) {
-		for (size_t j = 0; j < m; ++j) {
-			ostr << '+';
-			ostr << string(2 * n + 1, '-');
-		}
-		ostr << "+\n";
+		ostr << fence << '\n';
 		for (size_t j = 0; j < m; ++j) {
 			for (size_t k = 0; k < m; ++k) {
 				ostr << "| ";
@@ -70,9 +75,5 @@ ostream& operator <<(ostream &ostr, const Sudoku &sudoku) {
 			ostr << "|\n";
 		}
 	}
-	for (size_t i = 0; i < m; ++i) {
-		ostr << '+';
-		ostr << string(2 * n + 1, '-');
-	}
-	return ostr << '+';
+	return ostr << fence;
 }

@@ -40,6 +40,8 @@ private:
 public:
 	virtual Technique::HintType GetHint();
 	inline int Difficulty() const;
+public:
+	friend std::ostream& operator <<(std::ostream&, const Candidate&);
 };
 
 inline std::vector<bool>::reference Candidate::operator ()(std::size_t cell, std::size_t number) {

@@ -17,7 +17,7 @@ protected:
 	std::vector<std::size_t> &cell_count;
 	std::vector<std::vector<std::size_t>> &row_index, &column_index, &box_index;
 	const std::vector<std::vector<bool>> &row_contain, &column_contain, &box_contain;
-	std::vector<std::size_t> row_blank, column_blank, box_blank;
+	std::vector<std::size_t> &row_blank, &column_blank, &box_blank;
 	const std::vector<std::vector<bool>> &weak_chain;
 	int &difficulty;
 public:

@@ -80,8 +80,8 @@ Technique::HintType Unique::UniqueLoop() {
 			loop.set.resize(size * size);
 			loop.cell.push_back(i);
 			loop.set[i] = true;
-			loop.n1 = n[0];
-			loop.n2 = n[1];
+			loop.var[0] = n[0];
+			loop.var[1] = n[1];
 			FindLoop(unique_loop, loop, 2, vector<bool>(size), -1);
 		}
 	}
@@ -97,15 +97,15 @@ Technique::HintType Unique::UniqueLoop() {
 			}
 			ostringstream ostr;
 			ostr << "Unique " << (loop.cell.size() == 4 ? "Rectangle" : "Loop") << " Type I ("
-				<< Number2String(loop.n1) << Number2String(loop.n2) << " in ";
+				<< Number2String(loop.var[0]) << Number2String(loop.var[1]) << " in ";
 			for (size_t cell: loop.cell) {
 				ostr << Cell2String(cell) << "--";
 			}
 			ostr << Cell2String(loop.cell.front()) << "): ";
 			difficulty += 250 + 50 * Log2(loop.cell.size() - 3);
-			Remove(special_cell, loop.n1);
-			Remove(special_cell, loop.n2);
-			ostr << Cell2String(special_cell) << "!=" << Number2String(loop.n1) << Number2String(loop.n2);
+			Remove(special_cell, loop.var[0]);
+			Remove(special_cell, loop.var[1]);
+			ostr << Cell2String(special_cell) << "!=" << Number2String(loop.var[0]) << Number2String(loop.var[1]);
 			return make_pair(ostr.str(), false);
 		} else if (loop.type == 2) {
 			vector<size_t> special_cell;
@@ -115,7 +115,7 @@ Technique::HintType Unique::UniqueLoop() {
 				}
 			}
 			size_t number = 1;
-			while (number == loop.n1 || number == loop.n2 || !(*this)(special_cell.front(), number)) {
+			while (number == loop.var[0] || number == loop.var[1] || !(*this)(special_cell.front(), number)) {
 				++number;
 			}
 			vector<size_t> common_effect_cell = CommonEffectCell(special_cell.front() * size, special_cell.back() * size);
@@ -139,7 +139,7 @@ Technique::HintType Unique::UniqueLoop() {
 				difficulty += 350 + 50 * Log2(loop.cell.size() - 3);
 				ostringstream ostr;
 				ostr << "Unique " << (loop.cell.size() == 4 ? "Rectangle" : "Loop") << " Type II ("
-					<< Number2String(loop.n1) << Number2String(loop.n2) << " in ";
+					<< Number2String(loop.var[0]) << Number2String(loop.var[1]) << " in ";
 				for (size_t cell: loop.cell) {
 					ostr << Cell2String(cell) << "--";
 				}
@@ -172,7 +172,7 @@ Technique::HintType Unique::UniqueLoop() {
 				size_t regions[3] = {row / m * m + column / n, size + row, 2 * size + column};
 				bool ok = true;
 				for (size_t region: regions) {
-					if (RegionCount(region)[(i == 0 ? loop.n1 : loop.n2) - 1] != 2) {
+					if (RegionCount(region)[loop.var[i] - 1] != 2) {
 						ok = false;
 						break;
 					}
@@ -184,12 +184,12 @@ Technique::HintType Unique::UniqueLoop() {
 			}
 			if (elim > 0) {
 				difficulty += 400 + 50 * Log2(loop.cell.size() - 3);
-				size_t number = (elim == 1) ^ place[0] ^ place[1] ? loop.n1 : loop.n2;
+				size_t number = (elim == 1) ^ place[0] ^ place[1] ? loop.var[0] : loop.var[1];
 				Remove(special_cell[0], number);
 				Remove(special_cell[1], number);
 				ostringstream ostr;
 				ostr << "Unique " << (loop.cell.size() == 4 ? "Rectangle" : "Loop") << " Type IV ("
-					<< Number2String(loop.n1) << Number2String(loop.n2) << " in ";
+					<< Number2String(loop.var[0]) << Number2String(loop.var[1]) << " in ";
 				for (size_t cell: loop.cell) {
 					ostr << Cell2String(cell) << "--";
 				}
@@ -206,6 +206,57 @@ Technique::HintType Unique::UniqueLoop() {
 }
 
 Technique::HintType Unique::AvoidableRectangle() {
+	for (size_t r1 = 0; r1 < size - 1; ++r1) for (size_t r2 = 1; r2 < size; ++r2) {
+		for (size_t c1 = 0; c1 < size - 1; ++c1) for (size_t c2 = 1; c2 < size; ++c2) {
+			if ((r1 / m == r2 / m) ^ (c1 / n == c2 / n)) {
+				size_t cell[4] = {r1 * size + c1, r1 * size + c2, r2 * size + c1, r2 * size + c2};
+				bool ok = true;
+				for (size_t c: cell) {
+					if (given[c]) {
+						ok = false;
+						break;
+					}
+				}
+				if (!ok) {
+					continue;
+				}
+				if (grid[cell[0]] > 0 && grid[cell[0]] == grid[cell[3]]) {
+					if (grid[cell[1]] != 0 && (*this)(cell[2], grid[cell[1]])) {
+						difficulty += 100;
+						Remove(cell[2], grid[cell[1]]);
+						ostringstream ostr;
+						ostr << "Avoidable Rectangle (Row" << Row2String(r1) << Row2String(r2) << ", Column" << Column2String(c1) << Column2String(c2)
+							<< "): " << Cell2String(cell[2]) << "!=" << Number2String(grid[cell[1]]);
+						return make_pair(ostr.str(), false);
+					} else if (grid[cell[2]] != 0 && (*this)(cell[1], grid[cell[2]])) {
+						difficulty += 100;
+						Remove(cell[1], grid[cell[2]]);
+						ostringstream ostr;
+						ostr << "Avoidable Rectangle (Row" << Row2String(r1) << Row2String(r2) << ", Column" << Column2String(c1) << Column2String(c2)
+							<< "): " << Cell2String(cell[1]) << "!=" << Number2String(grid[cell[2]]);
+						return make_pair(ostr.str(), false);
+					}
+				} else if (grid[cell[1]] > 0 && grid[cell[1]] == grid[cell[2]]) {
+					if (grid[cell[0]] != 0 && (*this)(cell[3], grid[cell[0]])) {
+						difficulty += 100;
+						Remove(cell[3], grid[cell[0]]);
+						ostringstream ostr;
+						ostr << "Avoidable Rectangle (Row" << Row2String(r1) << Row2String(r2) << ", Column" << Column2String(c1) << Column2String(c2)
+							<< "): " << Cell2String(cell[3]) << "!=" << Number2String(grid[cell[0]]);
+						return make_pair(ostr.str(), false);
+					} else if (grid[cell[3]] != 0 && (*this)(cell[0], grid[cell[3]])) {
+						difficulty += 100;
+						Remove(cell[0], grid[cell[3]]);
+						ostringstream ostr;
+						ostr << "Avoidable Rectangle (Row" << Row2String(r1) << Row2String(r2) << ", Column" << Column2String(c1) << Column2String(c2)
+							<< "): " << Cell2String(cell[0]) << "!=" << Number2String(grid[cell[3]]);
+						return make_pair(ostr.str(), false);
+					}
+				}
+			}
+		}
+	}
+
 	return make_pair("", false);
 }
 
@@ -228,7 +279,7 @@ Technique::HintType Unique::BivalueUniversalGrave() {
 			difficulty += 250;
 			Fill(cell, number);
 			ostringstream ostr;
-			ostr << "Bivalue Universal Grave +1: " << Cell2String(cell) << "=" << Number2String(number);
+			ostr << "Bivalue Universal Grave +1: " << Cell2String(cell) << '=' << Number2String(number);
 			return make_pair(ostr.str(), true);
 		}
 	}
@@ -280,9 +331,9 @@ void Unique::FindLoop(vector<Loop> &results, Loop &loop, size_t allowed, const v
 				}
 			} else if (!loop.set[cell]) {
 				vector<bool> new_extra(extra);
-				if ((*this)(cell, loop.n1) && (*this)(cell, loop.n2)) {
+				if ((*this)(cell, loop.var[0]) && (*this)(cell, loop.var[1])) {
 					for (size_t number = 1; number <= size; ++number) {
-						if (number != loop.n1 && number != loop.n2 && (*this)(cell, number)) {
+						if (number != loop.var[0] && number != loop.var[1] && (*this)(cell, number)) {
 							new_extra[number - 1] = true;
 						}
 					}
@@ -335,17 +386,12 @@ int Unique::GetType(const Loop &loop) const {
 	} else if (extra_cell.size() > 2) {
 		return 2;
 	} else {
-		vector<bool> potential(size);
+		size_t count = 0;
 		for (size_t number = 1; number <= size; ++number) {
 			if ((*this)(extra_cell.front(), number) || (*this)(extra_cell.back(), number)) {
-				potential[number - 1] = true;
+				++count;
 			}
 		}
-		potential[loop.n1 - 1] = potential[loop.n2 - 1] = false;
-		size_t count = 0;
-		for (bool b: potential) if (b) {
-			++count;
-		}
-		return count == 1 ? 3 : 4;
+		return count == 3 ? 3 : 4;
 	}
 }
