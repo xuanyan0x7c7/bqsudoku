@@ -211,12 +211,11 @@ Technique::HintType Unique::AvoidableRectangle() {
 
 Technique::HintType Unique::BivalueUniversalGrave() {
 	size_t bug1_count = 0;
-	size_t row, column;
+	size_t cell;
 	for (size_t i = 0; i < size * size; ++i) {
 		if (cell_count[i] == 3) {
 			++bug1_count;
-			row = i / size;
-			column = i % size;
+			cell = i;
 		} else if (cell_count[i] > 3) {
 			return make_pair("", false);
 		}
@@ -224,12 +223,14 @@ Technique::HintType Unique::BivalueUniversalGrave() {
 
 	if (bug1_count == 1) {
 		size_t number = 0;
-		while (row_count[row][number++] != 3);
-		difficulty += 250;
-		Fill(row, column, number);
-		ostringstream ostr;
-		ostr << "Bivalue Universal Grave +1: " << Cell2String(row * size + column) << "=" << Number2String(number);
-		return make_pair(ostr.str(), true);
+		while (row_count[cell / size][number++] != 3);
+		if ((*this)(cell, number)) {
+			difficulty += 250;
+			Fill(cell, number);
+			ostringstream ostr;
+			ostr << "Bivalue Universal Grave +1: " << Cell2String(cell) << "=" << Number2String(number);
+			return make_pair(ostr.str(), true);
+		}
 	}
 
 	return make_pair("", false);
