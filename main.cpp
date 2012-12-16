@@ -9,7 +9,7 @@ using namespace std;
 
 void CheckUniqueness(const Sudoku&);
 void BruteForce(const Sudoku&);
-void StepByStep(const Sudoku&);
+void StepByStep(const Sudoku&, bool = true);
 
 int main(int argc, char **argv) {
 	if (argc == 1) {
@@ -18,8 +18,9 @@ int main(int argc, char **argv) {
 		cout << "Option: " << endl;
 		cout << "\t--print / -p\t print sudoku" << endl;
 		cout << "\t--check / -c\t check validity" << endl;
-		cout << "\t--brute-force / -b\tbrute force solver" << endl;
-		cout << "\t--step-by-step / -s\tstep by step solver" << endl;
+		cout << "\t--brute / -b\tbrute force solver" << endl;
+		cout << "\t--step / -s\tstep by step solver" << endl;
+		cout << "\t--step-not-unique / --sn\t step by step solver when you can't determine it's uniqueness" << endl;
 	} else {
 		size_t l, m, n;
 		string str;
@@ -38,10 +39,12 @@ int main(int argc, char **argv) {
 			cout << sudoku << endl;
 			if (strcmp(argv[1], "--check") == 0 || strcmp(argv[1], "-c") == 0) {
 				CheckUniqueness(sudoku);
-			} else if (strcmp(argv[1], "--brute-force") == 0 || strcmp(argv[1], "-b") == 0) {
+			} else if (strcmp(argv[1], "--brute") == 0 || strcmp(argv[1], "-b") == 0) {
 				BruteForce(sudoku);
-			} else if (strcmp(argv[1], "--step-by-step") == 0 || strcmp(argv[1], "-s") == 0) {
+			} else if (strcmp(argv[1], "--step") == 0 || strcmp(argv[1], "-s") == 0) {
 				StepByStep(sudoku);
+			} else if (strcmp(argv[1], "--step-not-unique") == 0 || strcmp(argv[1], "--sn") == 0) {
+				StepByStep(sudoku, false);
 			}
 		}
 	}
@@ -72,8 +75,8 @@ void BruteForce(const Sudoku &sudoku) {
 	}
 }
 
-void StepByStep(const Sudoku &sudoku) {
-	Candidate sbssudoku(sudoku);
+void StepByStep(const Sudoku &sudoku, bool uniqueness) {
+	Candidate sbssudoku(sudoku, uniqueness);
 	bool newline = false;
 	while (!sbssudoku.Solved()) {
 		auto hint = sbssudoku.GetHint();

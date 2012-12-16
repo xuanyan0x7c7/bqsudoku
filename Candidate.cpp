@@ -16,14 +16,14 @@ Candidate::~Candidate() {
 	}
 }
 
-Candidate::Candidate(const Sudoku &sudoku): Sudoku(sudoku),
+Candidate::Candidate(const Sudoku &sudoku, bool uniqueness): Sudoku(sudoku),
 	candidate(size * size, vector<bool>(size, true)),
 	row_count(size, vector<size_t>(size, size)), column_count(size, vector<size_t>(size, size)),
 	box_count(size, vector<size_t>(size, size)), cell_count(size * size, size),
 	row_index(size, vector<size_t>(size)), column_index(size, vector<size_t>(size)), box_index(size, vector<size_t>(size)),
 	row_contain(size, vector<bool>(size * size)), column_contain(size, vector<bool>(size * size)),
 	box_contain(size, vector<bool>(size * size)), row_blank(size, size), column_blank(size, size), box_blank(size, size),
-	weak_chain(size * size * size, vector<bool>(size * size * size)), difficulty(0) {
+	weak_chain(size * size * size, vector<bool>(size * size * size)), uniqueness(uniqueness), difficulty(0) {
 	for (size_t i = 0; i < size; ++i) {
 		for (size_t j = 0; j < size; ++j) {
 			row_index[i][j] = i * size + j;
@@ -76,7 +76,9 @@ Candidate::Candidate(const Sudoku &sudoku): Sudoku(sudoku),
 	technique.push_back(new Single(*this));
 	technique.push_back(new Lock(*this));
 	technique.push_back(new Fish(*this));
-	technique.push_back(new Unique(*this));
+	if (uniqueness) {
+		technique.push_back(new Unique(*this));
+	}
 	technique.push_back(new Chain(*this));
 }
 

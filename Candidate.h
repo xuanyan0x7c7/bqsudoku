@@ -16,6 +16,7 @@ protected:
 	std::vector<std::vector<bool>> row_contain, column_contain, box_contain;
 	std::vector<std::size_t> row_blank, column_blank, box_blank;
 	std::vector<std::vector<bool>> weak_chain;
+	bool uniqueness;
 	int difficulty;
 public:
 	Candidate(const Candidate&);
@@ -24,7 +25,7 @@ public:
 	Candidate& operator =(Candidate&&);
 	~Candidate();
 public:
-	Candidate(const Sudoku&);
+	Candidate(const Sudoku&, bool = true);
 protected:
 	inline std::vector<bool>::reference operator ()(std::size_t, std::size_t);
 	inline std::vector<bool>::reference operator ()(std::size_t, std::size_t, std::size_t);
