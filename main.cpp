@@ -89,6 +89,9 @@ void BruteForce(const Sudoku &sudoku) {
 void StepByStep(const Sudoku &sudoku, bool print_step, bool uniqueness) {
 	Candidate sbssudoku(sudoku, uniqueness);
 	bool newline = false;
+	if (print_step) {
+		cout << endl << sbssudoku << endl;
+	}
 	while (!sbssudoku.Solved()) {
 		auto hint = sbssudoku.GetHint();
 		if (!hint.first.empty()) {
