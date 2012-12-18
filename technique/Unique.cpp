@@ -456,7 +456,7 @@ void Unique::FindUniqueLoop(vector<Loop> &results, Loop &loop, size_t allowed, c
 						for (size_t r: GetRegion(cell)) {
 							++loop.region_use[r];
 						}
-						FindUniqueLoop(results, loop, !normal > 2 ? allowed - 1 : allowed, new_extra, i);
+						FindUniqueLoop(results, loop, !normal ? allowed - 1 : allowed, new_extra, i);
 					}
 				}
 			}
