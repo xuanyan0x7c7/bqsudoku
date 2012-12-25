@@ -24,17 +24,6 @@ Chain::~Chain() = default;
 
 Chain::Chain(Candidate &sudoku): Technique(sudoku) {}
 
-namespace {
-	int Log2(int n) {
-		int k = 0;
-		while (n > 1) {
-			n >>= 1;
-			++k;
-		}
-		return k;
-	}
-}
-
 namespace std {
 	template <> struct hash<pair<Chain::Group, Chain::Group>> {
 		size_t operator()(const pair<vector<size_t>, vector<size_t>> &p) const {
@@ -69,7 +58,7 @@ vector<size_t> Chain::CommonEffectCell(const Group &g1, const Group &g2) const {
 	for (size_t cell: vec) {
 		bool ok = true;
 		for (size_t c: g1) {
-			if (!weak_chain[cell][c]) {
+			if (!weak_link[cell][c]) {
 				ok = false;
 				break;
 			}
@@ -78,7 +67,7 @@ vector<size_t> Chain::CommonEffectCell(const Group &g1, const Group &g2) const {
 			continue;
 		}
 		for (size_t c: g2) {
-			if (!weak_chain[cell][c]) {
+			if (!weak_link[cell][c]) {
 				ok = false;
 				break;
 			}
@@ -92,7 +81,7 @@ vector<size_t> Chain::CommonEffectCell(const Group &g1, const Group &g2) const {
 
 bool Chain::IsWeakChain(const Group &g1, const Group &g2) const {
 	for (size_t c1: g1) for (size_t c2: g2) {
-		if (!weak_chain[c1][c2]) {
+		if (!weak_link[c1][c2]) {
 			return false;
 		}
 	}
@@ -133,14 +122,16 @@ Chain::ChainType Chain::GetChainType(const vector<Group> &chain) const {
 	}
 }
 
-string Chain::Chain2String(const vector<Group> &chain) {
+string Chain::Chain2String(const vector<Group> &chain, bool print_name) {
 	ostringstream ostr;
 	size_t number;
 	bool is_strong_link = true;
 	switch (GetChainType(chain)) {
 		case ChainType::XChain:
-			difficulty += 1500 + 100 * Log2(chain.size() - 2);
-			ostr << "X-Chain (";
+			difficulty += 1000 + 100 * chain.size();
+			if (print_name) {
+				ostr << "X-Chain (";
+			}
 			number = chain.front().front() % size + 1;
 			ostr << Number2String(number) << " of ";
 			for (const Group &group: chain) {
@@ -151,11 +142,15 @@ string Chain::Chain2String(const vector<Group> &chain) {
 				}
 				ostr << Cell2String(num / size);
 			}
-			ostr << "):";
+			if (print_name) {
+				ostr << "):";
+			}
 			break;
 		case ChainType::NiceXLoop: 
-			difficulty += 1500 + 100 * Log2(chain.size() - 4);
-			ostr << "Nice X-Loop (";
+			difficulty += 800 + 100 * chain.size();
+			if (print_name) {
+				ostr << "Nice X-Loop (";
+			}
 			number = chain.front().front() % size + 1;
 			ostr << Number2String(number) << " of ";
 			for (const Group &group: chain) {
@@ -166,11 +161,15 @@ string Chain::Chain2String(const vector<Group> &chain) {
 				}
 				ostr << Cell2String(num / size);
 			}
-			ostr << "):";
+			if (print_name) {
+				ostr << "):";
+			}
 			break;
 		case ChainType::XYChain:
-			difficulty += 1500 + 100 * Log2(chain.size() - 4);
-			ostr << "XY-" << (chain.size() == 6 ? "Wing" : "Chain") << " (";
+			difficulty += 1000 + 50 * chain.size();
+			if (print_name) {
+				ostr << "XY-" << (chain.size() == 6 ? "Wing" : "Chain") << " (";
+			}
 			for (auto iter = chain.cbegin(); iter != chain.cend(); ++iter) {
 				if (iter != chain.cbegin()) {
 					ostr << "--";
@@ -179,14 +178,18 @@ string Chain::Chain2String(const vector<Group> &chain) {
 				ostr << Cell2String(num / size) << '(' << Number2String(num % size + 1) << "==";
 				ostr << Number2String((++iter)->front() % size + 1) << ')';
 			}
-			ostr << "):";
+			if (print_name) {
+				ostr << "):";
+			}
 			break;
 		case ChainType::AIC:
-			difficulty += 2000 + 200 * Log2(chain.size());
+			difficulty += 2000 + 200 * chain.size();
 			if (chain.front().front() % size != chain.back().front() % size) {
 				difficulty += 500;
 			}
-			ostr << "AIC (";
+			if (print_name) {
+				ostr << "AIC (";
+			}
 			for (const Group &group: chain) {
 				size_t num = group.front();
 				is_strong_link = !is_strong_link;
@@ -195,14 +198,15 @@ string Chain::Chain2String(const vector<Group> &chain) {
 				}
 				ostr << Cell2String(num / size) << '(' << Number2String(num % size + 1) << ')';
 			}
-			ostr << "):";
+			if (print_name) {
+				ostr << "):";
+			}
 			break;
 		case ChainType::NiceLoop:
-			difficulty += 2000 + 200 * Log2(chain.size() - 2);
-			if (chain.front().front() % size != chain.back().front() % size) {
-				difficulty += 500;
+			difficulty += 1800 + 200 * chain.size();
+			if (print_name) {
+				ostr << "Nice Loop (";
 			}
-			ostr << "Nice Loop (";
 			for (const Group &group: chain) {
 				size_t num = group.front();
 				is_strong_link = !is_strong_link;
@@ -211,11 +215,15 @@ string Chain::Chain2String(const vector<Group> &chain) {
 				}
 				ostr << Cell2String(num / size) << '(' << Number2String(num % size + 1) << ')';
 			}
-			ostr << "):";
+			if (print_name) {
+				ostr << "):";
+			}
 			break;
 		case ChainType::GroupedXChain:
-			difficulty += 1500 + 150 * Log2(chain.size() - 2);
-			ostr << "Grouped X-Chain (";
+			difficulty += 1500 + 150 * chain.size();
+			if (print_name) {
+				ostr << "Grouped X-Chain (";
+			}
 			number = chain.front().front() % size + 1;
 			ostr << Number2String(number) << " of ";
 			for (const Group &group: chain) {
@@ -237,11 +245,15 @@ string Chain::Chain2String(const vector<Group> &chain) {
 					ostr << Column2String(group.front() / size % size);
 				}
 			}
-			ostr << "):";
+			if (print_name) {
+				ostr << "):";
+			}
 			break;
 		case ChainType::GroupedNiceXLoop:
-			difficulty += 1500 + 150 * Log2(chain.size() - 4);
-			ostr << "Grouped Nice X-Loop (";
+			difficulty += 1300 + 150 * chain.size();
+			if (print_name) {
+				ostr << "Grouped Nice X-Loop (";
+			}
 			number = chain.front().front() % size + 1;
 			ostr << Number2String(number) << " of ";
 			for (const Group &group: chain) {
@@ -263,14 +275,18 @@ string Chain::Chain2String(const vector<Group> &chain) {
 					ostr << Column2String(group.front() / size % size);
 				}
 			}
-			ostr << "):";
+			if (print_name) {
+				ostr << "):";
+			}
 			break;
 		case ChainType::GroupedAIC:
-			difficulty += 2000 + 300 * Log2(chain.size());
+			difficulty += 2000 + 300 * chain.size();
 			if (chain.front().front() % size != chain.back().front() % size) {
 				difficulty += 500;
 			}
-			ostr << "Grouped AIC (";
+			if (print_name) {
+				ostr << "Grouped AIC (";
+			}
 			for (const Group &group: chain) {
 				is_strong_link = !is_strong_link;
 				if (group != chain.front()) {
@@ -291,14 +307,15 @@ string Chain::Chain2String(const vector<Group> &chain) {
 				}
 				ostr << '(' << Number2String(group.front() % size + 1) << ')';
 			}
-			ostr << "):";
+			if (print_name) {
+				ostr << "):";
+			}
 			break;
 		case ChainType::GroupedNiceLoop:
-			difficulty += 2000 + 300 * Log2(chain.size() - 2);
-			if (chain.front().front() % size != chain.back().front() % size) {
-				difficulty += 500;
+			difficulty += 1800 + 300 * chain.size();
+			if (print_name) {
+				ostr << "Grouped Nice Loop (";
 			}
-			ostr << "Grouped Nice Loop (";
 			for (const Group &group: chain) {
 				is_strong_link = !is_strong_link;
 				if (group != chain.front()) {
@@ -319,7 +336,9 @@ string Chain::Chain2String(const vector<Group> &chain) {
 				}
 				ostr << '(' << Number2String(group.front() % size + 1) << ')';
 			}
-			ostr << "):";
+			if (print_name) {
+				ostr << "):";
+			}
 			break;
 		default:
 			break;
@@ -1127,6 +1146,81 @@ Technique::HintType Chain::ForcingChain() {
 							}
 						}
 					}
+				}
+			}
+		}
+	}
+
+	// TODO output && sort by chain length
+	vector<vector<bool>> new_weak_link(weak_link);
+	for (const auto &links: strong_link) for (const auto &link: links) {
+		Group g1 = link.first.first;
+		Group g2 = link.first.second;
+		if (g1 < g2) {
+			for (size_t i = 0; i < size * size * size; ++i) if ((*this)(i)) {
+				bool ok = true;
+				for (size_t cell: g1) if (!weak_link[cell][i]) {
+					ok = false;
+					break;
+				}
+				if (!ok) {
+					continue;
+				}
+				for (size_t j = 0; j < size * size * size; ++j) if ((*this)(j)) {
+					bool ok = true;
+					for (size_t cell: g2) if (!weak_link[cell][j]) {
+						ok = false;
+						break;
+					}
+					if (ok) {
+						new_weak_link[i][j] = new_weak_link[j][i] = true;
+					}
+				}
+			}
+		}
+	}
+	for (size_t cell = 0; cell < size * size; ++cell) if (cell_count[cell] > 2) {
+		for (size_t c = 0; c < size * size * size; ++c) if ((*this)(c)) {
+			bool ok = true;
+			for (size_t number = 1; number <= size; ++number) if ((*this)(cell, number)) {
+				if (!new_weak_link[cell * size + number - 1][c]) {
+					ok = false;
+					break;
+				}
+			}
+			if (ok) {
+				difficulty += 10000;
+				Remove(c);
+				ostringstream ostr;
+				ostr << "Cell Forcing Chains (" << Cell2String(cell) << "): " << Cell2String(c / size) << "!=" << Number2String(c % size + 1);
+				return make_pair(ostr.str(), false);
+			}
+		}
+	}
+	for (size_t number = 1; number <= size; ++number) {
+		for (size_t region = 0; region < 3 * size; ++region) if (RegionCount(region)[number - 1] > 2) {
+			for (size_t c = 0; c < size * size * size; ++c) if ((*this)(c)) {
+				bool ok = true;
+				for (size_t cell: RegionIndex(region)) if ((*this)(cell, number)) {
+					if (!new_weak_link[cell * size + number - 1][c]) {
+						ok = false;
+						break;
+					}
+				}
+				if (ok) {
+					difficulty += 10000;
+					Remove(c);
+					ostringstream ostr;
+					ostr << "Region Forcing Chains (" << Number2String(number) << " in ";
+					if (region < size) {
+						ostr << "Box " << region + 1;
+					} else if (region < 2 * size) {
+						ostr << "Row " << Row2String(region - size);
+					} else {
+						ostr << "Column " << Column2String(region - 2 * size);
+					}
+					ostr << "): " << Cell2String(c / size) << "!=" << Number2String(c % size + 1);
+					return make_pair(ostr.str(), false);
 				}
 			}
 		}

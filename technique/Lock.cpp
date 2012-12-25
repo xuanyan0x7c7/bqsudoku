@@ -233,18 +233,18 @@ Technique::HintType Lock::HiddenPair(size_t pair_size) {
 			for (size_t i = 0; i < blank_size; ++i) {
 				(set[i] ? contain : not_contain).push_back(num_available[i]);
 			}
-			vector<size_t> g;
+			vector<size_t> pair_set;
 			for (size_t cell: box_index[box]) {
 				for (size_t number: contain) {
 					if ((*this)(cell, number)) {
-						g.push_back(cell);
+						pair_set.push_back(cell);
 						break;
 					}
 				}
 			}
-			if (g.size() == pair_size) {
+			if (pair_set.size() == pair_size) {
 				vector<size_t> elim;
-				for (size_t cell: g) {
+				for (size_t cell: pair_set) {
 					for (size_t number: not_contain) {
 						if ((*this)(cell, number)) {
 							elim.push_back(cell);
@@ -428,20 +428,20 @@ Technique::HintType Lock::NakedPair(size_t pair_size) {
 			for (size_t i = 0; i < blank_size; ++i) {
 				(set[i] ? contain : not_contain).push_back(num_available[i]);
 			}
-			vector<bool> g(size * size, true);
+			vector<bool> pair_set(size * size);
 			size_t count = blank_size;
 			for (size_t cell: box_index[box]) if (grid[cell] == 0) {
 				for (size_t number: not_contain) {
 					if ((*this)(cell, number)) {
 						--count;
-						g[cell] = false;
+						pair_set[cell] = true;
 						break;
 					}
 				}
 			}
 			if (count == pair_size) {
 				vector<size_t> elim;
-				for (size_t cell: box_index[box]) if (!g[cell]) {
+				for (size_t cell: box_index[box]) if (pair_set[cell]) {
 					for (size_t number: contain) {
 						if ((*this)(cell, number)) {
 							elim.push_back(cell);

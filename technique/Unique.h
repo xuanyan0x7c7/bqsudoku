@@ -34,9 +34,6 @@ private:
 	int GetUniqueType(const Loop&) const;
 	int GetHiddenType(const Loop&) const;
 private:
-	std::vector<std::size_t> GetRegion(std::size_t) const;
-	const std::vector<std::size_t>& RegionIndex(std::size_t) const;
-	const std::vector<std::size_t>& RegionCount(std::size_t) const;
 	void FindUniqueLoop(std::vector<Loop>&, Loop&, std::size_t, const std::vector<bool>&, int) const;
 	void FindHiddenLoop(std::vector<Loop>&, Loop&, std::size_t, std::size_t, int) const;
 };

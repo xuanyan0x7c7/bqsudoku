@@ -45,32 +45,6 @@ Technique::HintType Unique::GetHint() {
 	return make_pair("", false);
 }
 
-vector<size_t> Unique::GetRegion(size_t cell) const {
-	size_t row = cell / size;
-	size_t column = cell % size;
-	return {row / m * m + column / n, size + row, 2 * size + column};
-}
-
-const vector<size_t>& Unique::RegionIndex(size_t region) const {
-	if (region < size) {
-		return box_index[region];
-	} else if (region < 2 * size) {
-		return row_index[region - size];
-	} else {
-		return column_index[region - 2 * size];
-	}
-}
-
-const vector<size_t>& Unique::RegionCount(size_t region) const{
-	if (region < size) {
-		return box_count[region];
-	} else if (region < 2 * size) {
-		return row_count[region - size];
-	} else {
-		return column_count[region - 2 * size];
-	}
-}
-
 Technique::HintType Unique::UniqueLoop() {
 	vector<Loop> unique_loop;
 	for (size_t i = 0; i < size * size; ++i) {
@@ -136,7 +110,7 @@ Technique::HintType Unique::UniqueLoop() {
 				if ((*this)(cell, number)) {
 					bool ok = true;
 					for (size_t c: special_cell) {
-						if (!weak_chain[c * size][cell * size]) {
+						if (!weak_link[c * size][cell * size]) {
 							ok = false;
 							break;
 						}
@@ -160,6 +134,40 @@ Technique::HintType Unique::UniqueLoop() {
 					ostr << ' ' << Cell2String(cell) << "!=" << Number2String(number);
 				}
 				return make_pair(ostr.str(), false);
+			}
+		} else if (loop.type == 3) {
+			continue; // TODO
+			size_t special_cell[2];
+			size_t count = 0;
+			for (size_t cell: loop.cell) {
+				if (cell_count[cell] > 2 || !(*this)(cell, loop.var[0]) || !(*this)(cell, loop.var[1])) {
+					special_cell[count++] = cell;
+				}
+			}
+			if ((!(*this)(special_cell[0], loop.var[0]) && !(*this)(special_cell[1], loop.var[0]))
+					|| (!(*this)(special_cell[0], loop.var[1]) && !(*this)(special_cell[1], loop.var[1]))) {
+				continue;
+			}
+			vector<size_t> regions;
+			for (size_t region: GetRegion(special_cell[0])) {
+				if (RegionContain(region)[special_cell[1]]) {
+					regions.push_back(region);
+				}
+			}
+			if (regions.empty()) {
+				continue;
+			}
+			if (special_cell[0] > special_cell[1]) {
+				swap(special_cell[0], special_cell[1]);
+			}
+			vector<size_t> extra_value;
+			for (size_t number = 1; number <= size; ++number) if (number != loop.var[0] && number != loop.var[1]) {
+				if ((*this)(special_cell[0], number) || (*this)(special_cell[1], number)) {
+					extra_value.push_back(number);
+				}
+			}
+			const size_t extra_count = extra_value.size();
+			for (size_t pair_size = extra_count; pair_size < size; ++pair_size) {
 			}
 		}
 	}

@@ -27,7 +27,7 @@ Candidate::Candidate(const Sudoku &sudoku, bool uniqueness): Sudoku(sudoku),
 	row_index(size, vector<size_t>(size)), column_index(size, vector<size_t>(size)), box_index(size, vector<size_t>(size)),
 	row_contain(size, vector<bool>(size * size)), column_contain(size, vector<bool>(size * size)),
 	box_contain(size, vector<bool>(size * size)), row_blank(size, size), column_blank(size, size), box_blank(size, size),
-	weak_chain(size * size * size, vector<bool>(size * size * size)), uniqueness(uniqueness), difficulty(0) {
+	weak_link(size * size * size, vector<bool>(size * size * size)), uniqueness(uniqueness), difficulty(0) {
 	for (size_t i = 0; i < size; ++i) {
 		for (size_t j = 0; j < size; ++j) {
 			row_index[i][j] = i * size + j;
@@ -50,24 +50,24 @@ Candidate::Candidate(const Sudoku &sudoku, bool uniqueness): Sudoku(sudoku),
 		for (size_t i = 0; i < size; ++i) {
 			for (size_t c1: row_index[i]) for (size_t c2: row_index[i]) {
 				if (c1 != c2) {
-					weak_chain[c1 * size + number - 1][c2 * size + number - 1] = true;
+					weak_link[c1 * size + number - 1][c2 * size + number - 1] = true;
 				}
 			}
 			for (size_t c1: column_index[i]) for (size_t c2: column_index[i]) {
 				if (c1 != c2) {
-					weak_chain[c1 * size + number - 1][c2 * size + number - 1] = true;
+					weak_link[c1 * size + number - 1][c2 * size + number - 1] = true;
 				}
 			}
 			for (size_t c1: box_index[i]) for (size_t c2: box_index[i]) {
 				if (c1 != c2) {
-					weak_chain[c1 * size + number - 1][c2 * size + number - 1] = true;
+					weak_link[c1 * size + number - 1][c2 * size + number - 1] = true;
 				}
 			}
 		}
 	}
 	for (size_t i = 0; i < size * size; ++i) {
 		for (size_t n1 = 1; n1 < size; ++n1) for (size_t n2 = n1 + 1; n2 <= size; ++n2) {
-			weak_chain[i * size + n1 - 1][i * size + n2 - 1] = weak_chain[i * size + n2 - 1][i * size + n1 - 1] = true;
+			weak_link[i * size + n1 - 1][i * size + n2 - 1] = weak_link[i * size + n2 - 1][i * size + n1 - 1] = true;
 		}
 	}
 

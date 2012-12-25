@@ -18,9 +18,9 @@ Technique::~Technique() = default;
 Technique::Technique(Candidate &sudoku): SudokuBase(sudoku.m, sudoku.n), grid(sudoku.grid), given(sudoku.given), candidate(sudoku.candidate),
 	row_count(sudoku.row_count), column_count(sudoku.column_count), box_count(sudoku.box_count), cell_count(sudoku.cell_count),
 	row_index(sudoku.row_index), column_index(sudoku.column_index), box_index(sudoku.box_index),
-	row_contain(sudoku.weak_chain), column_contain(sudoku.column_contain), box_contain(sudoku.box_contain),
+	row_contain(sudoku.weak_link), column_contain(sudoku.column_contain), box_contain(sudoku.box_contain),
 	row_blank(sudoku.row_blank), column_blank(sudoku.column_blank), box_blank(sudoku.box_blank),
-	weak_chain(sudoku.weak_chain), difficulty(sudoku.difficulty) {}
+	weak_link(sudoku.weak_link), difficulty(sudoku.difficulty) {}
 
 void Technique::Fill(size_t row, size_t column, size_t number) {
 	--row_blank[row];
@@ -67,7 +67,7 @@ vector<size_t> Technique::CommonEffectCell(size_t r1, size_t c1, size_t r2, size
 		}
 		c.erase(r1 * size + c1);
 		for (size_t cell: c) {
-			if (weak_chain[cell * size][r2 * size * size + c2 * size]) {
+			if (weak_link[cell * size][r2 * size * size + c2 * size]) {
 				vec.push_back(cell);
 			}
 		}
@@ -140,7 +140,7 @@ vector<size_t> Technique::CommonEffectCell(size_t r1, size_t c1, size_t n1, size
 				vec.push_back((r1 * size + c1) * size + number - 1);
 			}
 		}
-	} else if (weak_chain[r1 * size * size + c1 * size][r2 * size * size + c2 * size]) {
+	} else if (weak_link[r1 * size * size + c1 * size][r2 * size * size + c2 * size]) {
 		vec.push_back((r1 * size + c1) * size + n2 - 1);
 		vec.push_back((r2 * size + c2) * size + n1 - 1);
 		sort(vec.begin(), vec.end());

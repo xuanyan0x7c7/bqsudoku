@@ -15,7 +15,7 @@ protected:
 	std::vector<std::vector<std::size_t>> row_index, column_index, box_index;
 	std::vector<std::vector<bool>> row_contain, column_contain, box_contain;
 	std::vector<std::size_t> row_blank, column_blank, box_blank;
-	std::vector<std::vector<bool>> weak_chain;
+	std::vector<std::vector<bool>> weak_link;
 	bool uniqueness;
 	int difficulty;
 public:
