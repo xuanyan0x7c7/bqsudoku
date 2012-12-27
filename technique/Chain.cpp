@@ -120,7 +120,7 @@ Chain::ChainType Chain::GetChainType(const vector<Group> &chain) const {
 			: (is_xchain ? ChainType::GroupedXChain : ChainType::GroupedAIC);
 	} else {
 		if (is_xchain) {
-			return is_niceloop ? ChainType::XChain : ChainType::NiceXLoop;
+			return is_niceloop ? ChainType::NiceXLoop : ChainType::XChain;
 		}
 		bool is_xychain = true;
 		for (auto iter = chain.cbegin(); iter != chain.cend(); iter += 2) {
@@ -133,13 +133,14 @@ Chain::ChainType Chain::GetChainType(const vector<Group> &chain) const {
 	}
 }
 
-string Chain::Chain2String(const vector<Group> &chain) {
+tuple<string, int, bool> Chain::GetStrongChain(const vector<Group> &chain) const {
 	ostringstream ostr;
 	size_t number;
 	bool is_strong_link = true;
+	int difficulty;
 	switch (GetChainType(chain)) {
 		case ChainType::XChain:
-			difficulty += 1000 + 100 * chain.size();
+			difficulty = 1000 + 100 * chain.size();
 			ostr << "X-Chain (";
 			number = chain.front().front() % size + 1;
 			ostr << Number2String(number) << " of ";
@@ -152,9 +153,9 @@ string Chain::Chain2String(const vector<Group> &chain) {
 				ostr << Cell2String(num / size);
 			}
 			ostr << "):";
-			break;
+			return make_tuple(ostr.str(), difficulty, false);
 		case ChainType::NiceXLoop: 
-			difficulty += 800 + 100 * chain.size();
+			difficulty = 800 + 100 * chain.size();
 			ostr << "Nice X-Loop (";
 			number = chain.front().front() % size + 1;
 			ostr << Number2String(number) << " of ";
@@ -167,9 +168,9 @@ string Chain::Chain2String(const vector<Group> &chain) {
 				ostr << Cell2String(num / size);
 			}
 			ostr << "):";
-			break;
+			return make_tuple(ostr.str(), difficulty, true);
 		case ChainType::XYChain:
-			difficulty += 1000 + 50 * chain.size();
+			difficulty = 1000 + 75 * chain.size();
 			ostr << "XY-" << (chain.size() == 6 ? "Wing" : "Chain") << " (";
 			for (auto iter = chain.cbegin(); iter != chain.cend(); ++iter) {
 				if (iter != chain.cbegin()) {
@@ -180,9 +181,9 @@ string Chain::Chain2String(const vector<Group> &chain) {
 				ostr << Number2String((++iter)->front() % size + 1) << ')';
 			}
 			ostr << "):";
-			break;
+			return make_tuple(ostr.str(), difficulty, false);
 		case ChainType::AIC:
-			difficulty += 2000 + 200 * chain.size();
+			difficulty = 2000 + 200 * chain.size();
 			if (chain.front().front() % size != chain.back().front() % size) {
 				difficulty += 500;
 			}
@@ -196,9 +197,9 @@ string Chain::Chain2String(const vector<Group> &chain) {
 				ostr << Cell2String(num / size) << '(' << Number2String(num % size + 1) << ')';
 			}
 			ostr << "):";
-			break;
+			return make_tuple(ostr.str(), difficulty, false);
 		case ChainType::NiceLoop:
-			difficulty += 1800 + 200 * chain.size();
+			difficulty = 1800 + 200 * chain.size();
 			ostr << "Nice Loop (";
 			for (const Group &group: chain) {
 				size_t num = group.front();
@@ -209,9 +210,9 @@ string Chain::Chain2String(const vector<Group> &chain) {
 				ostr << Cell2String(num / size) << '(' << Number2String(num % size + 1) << ')';
 			}
 			ostr << "):";
-			break;
+			return make_tuple(ostr.str(), difficulty, true);
 		case ChainType::GroupedXChain:
-			difficulty += 1500 + 150 * chain.size();
+			difficulty = 1500 + 100 * chain.size();
 			ostr << "Grouped X-Chain (";
 			number = chain.front().front() % size + 1;
 			ostr << Number2String(number) << " of ";
@@ -235,9 +236,9 @@ string Chain::Chain2String(const vector<Group> &chain) {
 				}
 			}
 			ostr << "):";
-			break;
+			return make_tuple(ostr.str(), difficulty, false);
 		case ChainType::GroupedNiceXLoop:
-			difficulty += 1300 + 150 * chain.size();
+			difficulty = 1300 + 100 * chain.size();
 			ostr << "Grouped Nice X-Loop (";
 			number = chain.front().front() % size + 1;
 			ostr << Number2String(number) << " of ";
@@ -261,9 +262,9 @@ string Chain::Chain2String(const vector<Group> &chain) {
 				}
 			}
 			ostr << "):";
-			break;
+			return make_tuple(ostr.str(), difficulty, chain.front().size() == 1);
 		case ChainType::GroupedAIC:
-			difficulty += 2000 + 300 * chain.size();
+			difficulty = 2000 + 200 * chain.size();
 			if (chain.front().front() % size != chain.back().front() % size) {
 				difficulty += 500;
 			}
@@ -289,9 +290,9 @@ string Chain::Chain2String(const vector<Group> &chain) {
 				ostr << '(' << Number2String(group.front() % size + 1) << ')';
 			}
 			ostr << "):";
-			break;
+			return make_tuple(ostr.str(), difficulty, false);
 		case ChainType::GroupedNiceLoop:
-			difficulty += 1800 + 300 * chain.size();
+			difficulty = 1800 + 300 * chain.size();
 			ostr << "Grouped Nice Loop (";
 			for (const Group &group: chain) {
 				is_strong_link = !is_strong_link;
@@ -314,15 +315,13 @@ string Chain::Chain2String(const vector<Group> &chain) {
 				ostr << '(' << Number2String(group.front() % size + 1) << ')';
 			}
 			ostr << "):";
-			break;
+			return make_tuple(ostr.str(), difficulty, chain.front().size() == 1);
 		default:
-			break;
+			return make_tuple("", 0, false);
 	}
-
-	return ostr.str();
 }
 
-string Chain::Chain2String(const vector<Group> &chain, int) {
+string Chain::GetWeakChain(const vector<Group> &chain) const {
 	ostringstream ostr;
 	bool is_strong_link = true;
 	for (const Group &group: chain) {
@@ -955,11 +954,15 @@ Technique::HintType Chain::ForcingChain() {
 		}
 	}
 
+	tuple<string, int, bool, vector<size_t>> best_strong("", 0x7fffffff, false, vector<size_t>());
 	bool ok = true;
 	while (ok) {
 		ok = false;
 		unordered_map<pair<Group, Group>, vector<Group>> link;
 		size_t original_size = strong_link.size();
+		if (get<1>(best_strong) <= 1000 + 150 * static_cast<int>(original_size)) {
+			break;
+		}
 		for (size_t d = 0; d <= (original_size - 1) / 2; ++d) {
 			for (const auto &link1: strong_link[d]) {
 				const Group &group11 = link1.first.first;
@@ -1008,13 +1011,22 @@ Technique::HintType Chain::ForcingChain() {
 								}
 							}
 							if (!elim.empty()) {
-								ostringstream ostr;
-								ostr << Chain2String(new_vector1);
-								for (size_t cell: elim) {
-									Remove(cell);
-									ostr << ' ' << Cell2String(cell / size) << "!=" << Number2String(cell % size + 1);
+								tuple<string, int, bool> chain = GetStrongChain(new_vector1);
+								if (get<1>(chain) < get<1>(best_strong)) {
+									if (get<2>(chain)) {
+										size_t cell = new_vector1.front().front();
+										ostringstream ostr;
+										ostr << get<0>(chain) << ' ' << Cell2String(cell / size) << '=' << Number2String(cell % size + 1);
+										best_strong = make_tuple(ostr.str(), get<1>(chain), true, new_vector1.front());
+									} else {
+										ostringstream ostr;
+										ostr << get<0>(chain);
+										for (size_t cell: elim) {
+											ostr << ' ' << Cell2String(cell / size) << "!=" << Number2String(cell % size + 1);
+										}
+										best_strong = make_tuple(ostr.str(), get<1>(chain), false, elim);
+									}
 								}
-								return make_pair(ostr.str(), false);
 							}
 						}
 					}
@@ -1051,13 +1063,22 @@ Technique::HintType Chain::ForcingChain() {
 								}
 							}
 							if (!elim.empty()) {
-								ostringstream ostr;
-								ostr << Chain2String(new_vector1);
-								for (size_t cell: elim) {
-									Remove(cell);
-									ostr << ' ' << Cell2String(cell / size) << "!=" << Number2String(cell % size + 1);
+								tuple<string, int, bool> chain = GetStrongChain(new_vector1);
+								if (get<1>(chain) < get<1>(best_strong)) {
+									if (get<2>(chain)) {
+										size_t cell = new_vector1.front().front();
+										ostringstream ostr;
+										ostr << get<0>(chain) << ' ' << Cell2String(cell / size) << '=' << Number2String(cell % size + 1);
+										best_strong = make_tuple(ostr.str(), get<1>(chain), true, new_vector1.front());
+									} else {
+										ostringstream ostr;
+										ostr << get<0>(chain);
+										for (size_t cell: elim) {
+											ostr << ' ' << Cell2String(cell / size) << "!=" << Number2String(cell % size + 1);
+										}
+										best_strong = make_tuple(ostr.str(), get<1>(chain), false, elim);
+									}
 								}
-								return make_pair(ostr.str(), false);
 							}
 						}
 					}
@@ -1094,13 +1115,22 @@ Technique::HintType Chain::ForcingChain() {
 								}
 							}
 							if (!elim.empty()) {
-								ostringstream ostr;
-								ostr << Chain2String(new_vector1);
-								for (size_t cell: elim) {
-									Remove(cell);
-									ostr << ' ' << Cell2String(cell / size) << "!=" << Number2String(cell % size + 1);
+								tuple<string, int, bool> chain = GetStrongChain(new_vector1);
+								if (get<1>(chain) < get<1>(best_strong)) {
+									if (get<2>(chain)) {
+										size_t cell = new_vector1.front().front();
+										ostringstream ostr;
+										ostr << get<0>(chain) << ' ' << Cell2String(cell / size) << '=' << Number2String(cell % size + 1);
+										best_strong = make_tuple(ostr.str(), get<1>(chain), true, new_vector1.front());
+									} else {
+										ostringstream ostr;
+										ostr << get<0>(chain);
+										for (size_t cell: elim) {
+											ostr << ' ' << Cell2String(cell / size) << "!=" << Number2String(cell % size + 1);
+										}
+										best_strong = make_tuple(ostr.str(), get<1>(chain), false, elim);
+									}
 								}
-								return make_pair(ostr.str(), false);
 							}
 						}
 					}
@@ -1137,13 +1167,22 @@ Technique::HintType Chain::ForcingChain() {
 								}
 							}
 							if (!elim.empty()) {
-								ostringstream ostr;
-								ostr << Chain2String(new_vector1);
-								for (size_t cell: elim) {
-									Remove(cell);
-									ostr << ' ' << Cell2String(cell / size) << "!=" << Number2String(cell % size + 1);
+								tuple<string, int, bool> chain = GetStrongChain(new_vector1);
+								if (get<1>(chain) < get<1>(best_strong)) {
+									if (get<2>(chain)) {
+										size_t cell = new_vector1.front().front();
+										ostringstream ostr;
+										ostr << get<0>(chain) << ' ' << Cell2String(cell / size) << '=' << Number2String(cell % size + 1);
+										best_strong = make_tuple(ostr.str(), get<1>(chain), true, new_vector1.front());
+									} else {
+										ostringstream ostr;
+										ostr << get<0>(chain);
+										for (size_t cell: elim) {
+											ostr << ' ' << Cell2String(cell / size) << "!=" << Number2String(cell % size + 1);
+										}
+										best_strong = make_tuple(ostr.str(), get<1>(chain), false, elim);
+									}
 								}
-								return make_pair(ostr.str(), false);
 							}
 						}
 					}
@@ -1152,7 +1191,20 @@ Technique::HintType Chain::ForcingChain() {
 		}
 	}
 
-	// TODO output && sort by chain length
+	if (get<1>(best_strong) != 0x7fffffff) {
+		difficulty += get<1>(best_strong);
+		if (get<2>(best_strong)) {
+			size_t cell = get<3>(best_strong).front();
+			Fill(cell / size, cell % size + 1);
+			return make_pair(get<0>(best_strong), true);
+		} else {
+			for (size_t cell: get<3>(best_strong)) {
+				Remove(cell);
+			}
+			return make_pair(get<0>(best_strong), false);
+		}
+	}
+
 	vector<vector<bool>> new_weak_link(weak_link);
 	unordered_map<pair<size_t, size_t>, vector<Group>> all_weak_link;
 	for (const auto &links: strong_link) for (const auto &link: links) {
@@ -1186,7 +1238,7 @@ Technique::HintType Chain::ForcingChain() {
 		}
 	}
 
-	tuple<string, size_t, int> best_choice("", 0, 0x7fffffff);
+	tuple<string, size_t, int> best_weak("", 0, 0x7fffffff);
 	for (size_t cell = 0; cell < size * size; ++cell) if (cell_count[cell] > 2) {
 		for (size_t c = 0; c < size * size * size; ++c) if ((*this)(c)) {
 			bool ok = true;
@@ -1205,13 +1257,13 @@ Technique::HintType Chain::ForcingChain() {
 					difficulty += 2000 + 200 * chain.size();
 					ostr << Cell2String(cell) << '(' << Number2String(number) << ')' << "--";
 					if (chain.size() > 0) {
-						ostr << Chain2String(chain, 0) << "--";
+						ostr << GetWeakChain(chain) << "--";
 					}
 					ostr << Cell2String(c / size) << '(' << Number2String(c % size + 1) << ")\n";
 				}
 				ostr << "): " << Cell2String(c / size) << "!=" << Number2String(c % size + 1);
-				if (difficulty < get<2>(best_choice)) {
-					best_choice = make_tuple(ostr.str(), c, difficulty);
+				if (difficulty < get<2>(best_weak)) {
+					best_weak = make_tuple(ostr.str(), c, difficulty);
 				}
 			}
 		}
@@ -1235,23 +1287,23 @@ Technique::HintType Chain::ForcingChain() {
 						difficulty += 2000 + 200 * chain.size();
 						ostr << Cell2String(cell) << '(' << Number2String(number) << ')' << "--";
 						if (chain.size() > 0) {
-							ostr << Chain2String(chain, 0) << "--";
+							ostr << GetWeakChain(chain) << "--";
 						}
 						ostr << Cell2String(c / size) << '(' << Number2String(c % size + 1) << ")\n";
 					}
 					ostr << "): " << Cell2String(c / size) << "!=" << Number2String(c % size + 1);
-					if (difficulty < get<2>(best_choice)) {
-						best_choice = make_tuple(ostr.str(), c, difficulty);
+					if (difficulty < get<2>(best_weak)) {
+						best_weak = make_tuple(ostr.str(), c, difficulty);
 					}
 				}
 			}
 		}
 	}
 
-	if (get<2>(best_choice) != 0x7fffffff) {
-		difficulty += get<2>(best_choice);
-		Remove(get<1>(best_choice));
-		return make_pair(get<0>(best_choice), false);
+	if (get<2>(best_weak) != 0x7fffffff) {
+		difficulty += get<2>(best_weak);
+		Remove(get<1>(best_weak));
+		return make_pair(get<0>(best_weak), false);
 	} else {
 		return make_pair("", false);
 	}

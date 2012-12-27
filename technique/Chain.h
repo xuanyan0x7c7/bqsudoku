@@ -27,6 +27,6 @@ private:
 	std::vector<std::size_t> CommonEffectCell(const Group&, const Group&) const;
 	bool IsWeakChain(const Group&, const Group&) const;
 	ChainType GetChainType(const std::vector<Group>&) const;
-	std::string Chain2String(const std::vector<Group>&);
-	std::string Chain2String(const std::vector<Group>&, int);
+	std::tuple<std::string, int, bool> GetStrongChain(const std::vector<Group>&) const;
+	std::string GetWeakChain(const std::vector<Group>&) const;
 };
