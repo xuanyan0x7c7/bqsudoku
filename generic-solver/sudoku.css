@@ -1,0 +1,90 @@
+.current {
+	color: red;
+}
+
+.todo {
+	color: grey;
+}
+
+.progress-area {
+	padding-bottom: 20px;
+}
+
+.btn-group {
+	text-align: center;
+}
+
+i.icon-remove {
+	transition: transform 0.5s;
+	-moz-transition: -moz-transform 0.5s;
+	-ms-transition: -ms-transform 0.5s;
+	-o-transition: -o-transform 0.5s;
+	-webkit-transition: -webkit-transform 0.5s;
+}
+
+i.icon-remove:hover {
+	transform: scale(1.5, 1.5);
+	-moz-transform: scale(1.5, 1.5);
+	-ms-transform: scale(1.5, 1.5);
+	-o-transform: scale(1.5, 1.5);
+	-webkit-transform: scale(1.5, 1.5);
+}
+
+.sudoku {
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.sudoku td {
+	border: 1px solid black;
+	vertical-align: middle;
+	text-align: center;
+}
+
+.sudoku td[data-removed="true"] {
+	background-color: #a0a0a0;
+}
+
+.sudoku td[data-selected="true"] {
+	background-color: lightgreen;
+}
+
+.sudoku td[data-removed="true"][data-selected="true"] {
+	background-color: darkgreen;
+}
+
+.sudoku td > input {
+	border-style: none;
+	background-color: transparent;
+	vertical-align: middle;
+	text-align: center;
+}
+
+.sudoku td > input:focus {
+	outline: none;
+}
+
+.sudoku td.given {
+	background-color: lightblue;
+}
+
+.sudoku td[data-hover="true"] {
+	background-color: red;
+}
+
+.content {
+	padding: 10px;
+}
+
+#variable-table {
+	margin-left: auto;
+	margin-right: auto;
+}
+
+#variable-table td {
+	min-width: 30px;
+	height: 30px;
+	border: 1px solid black;
+	vertical-align: middle;
+	text-align: center;
+}

@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Create Sudoku</title>
+	<link rel="stylesheet" href="/library/bootstrap/css/bootstrap.css">
+	<link rel="stylesheet" href="sudoku.css">
+	<link rel="stylesheet" href="../../puzzle.css">
+	<script src="/library/jquery/jquery-2.0.3.js"></script>
+	<script src="/library/bootstrap/js/bootstrap.js"></script>
+	<script src="creator.js"></script>
+	<script src="sudoku.js"></script>
+</head>
+<body>
+	<div class="container-fluid">
+		<header class="row-fluid page-header">
+			<div class="span12">
+				<h1 class="text-center">Create Sudoku</h1>
+			</div>
+		</header>
+
+		<nav class="row-fluid">
+			<ul class="breadcrumb">
+				<li class="nav-progress" id="nav-set-board">Set Board</li>
+				<li class="divider">
+					&nbsp;<i class="icon-arrow-right"></i>&nbsp;
+				</li>
+				<li class="nav-progress" id="nav-add-regions">Add Regions</li>
+				<li class="divider">
+					&nbsp;<i class="icon-arrow-right"></i>&nbsp;
+				</li>
+				<li class="nav-progress" id="nav-add-constraints">Add Constraints</li>
+				<li class="divider">
+					&nbsp;<i class="icon-arrow-right"></i>&nbsp;
+				</li>
+				<li class="nav-progress" id="nav-set-givens">Set Givens</li>
+				<li class="divider">
+					&nbsp;<i class="icon-arrow-right"></i>&nbsp;
+				</li>
+				<li class="nav-progress" id="nav-remove-candidates">Remove Candidates</li>
+				<li class="divider">
+					&nbsp;<i class="icon-arrow-right"></i>&nbsp;
+				</li>
+				<li class="nav-progress" id="nav-finish">Finish!</li>
+			</ul>
+		</nav>
+
+		<div class="row-fluid">
+			<div class="span7" id="sudoku-grid">
+				<div class="form-horizontal">
+					<div class="control-group">
+						<label class="control-label" for="cell-size">Cell size</label>
+						<div class="controls">
+							<input type="range" id="cell-size">
+						</div>
+					</div>
+				</div>
+				<div class="puzzle" id="table-div"></div>
+			</div>
+			<div class="span5">
+				<div class="text-center progress-area">
+					<button class="btn btn-large btn-primary" type="button" id="progress">
+						Continue <i class="icon-forward icon-white"></i>
+					</button>
+					<div class="btn-group" id="solve-group">
+						<button class="btn btn-success" type="button" id="solve">
+							<i class="icon-play icon-white"></i> Solve
+						</button>
+						<button class="btn btn-warning" type="button" id="abort">
+							<i class="icon-stop icon-white"></i> Abort
+						</button>
+					</div>
+					<div class="btn-group" id="answer-group">
+						<button class="btn btn-info" type="button" id="prev-answer">
+							<i class="icon-arrow-left icon-white"></i> Previous Answer
+						</button>
+						<button class="btn btn-info" type="button" id="next-answer">
+							Next Answer <i class="icon-arrow-right icon-white"></i>
+						</button>
+					</div>
+				</div>
+
+				<div class="content" id="set-board">
+					<div class="form-horizontal">
+						<div class="control-group">
+							<label class="control-label" for="rows">Rows</label>
+							<div class="controls">
+								<input type="number" id="rows">
+							</div>
+							<label class="control-label" for="columns">Columns</label>
+							<div class="controls">
+								<input type="number" id="columns">
+							</div>
+						</div>
+					</div>
+					<p class="text-center">
+						Click on grids to disable/enable
+					</p>
+					<div class="text-center">
+						<div class="btn-group">
+							<button class="btn btn-warning" type="button">Enable All</button>
+							<button class="btn btn-warning" type="button">Disable All</button>
+						</div>
+					</div>
+				</div>
+
+				<div class="content" id="add-regions">
+					<div class="text-center">
+						<div class="btn-group" id="add-region-group">
+							<button class="btn" type="button">
+								Add Region
+							</button>
+							<button class="btn dropdown-toggle" data-toggle="dropdown">
+								<span class="caret"></span>
+							</button>
+							<ul class="dropdown-menu">
+								<li><a>All Rows</a></li>
+								<li><a>All Columns</a></li>
+								<li><a>AntiKnights</a></li>
+							</ul>
+						</div>
+						<button class="btn" type="button" data-toggle="button">Macro</button>
+						<button class="btn btn-danger" type="button">Remove All</button>
+					</div>
+					<br>
+					<p id="regions"></p>
+				</div>
+
+				<div class="content" id="add-constraints">
+					<div class="text-center">
+						<div class="btn-group" id="add-constraint-group">
+							<button class="btn" type="button">Equals to</button>
+							<button class="btn" type="button">Less than</button>
+							<button class="btn" type="button">Greater than</button>
+						</div>
+					</div>
+					<br>
+					<div class="text-center">
+						<button class="btn btn-danger" type="button">Remove All</button>
+					</div>
+					<br>
+					<p id="constraints"></p>
+				</div>
+
+				<div class="content" id="set-givens">
+					<div class="form-horizontal">
+						<div class="control-group">
+							<label class="control-label" for="variable">Variables</label>
+							<div class="controls">
+								<input type="text" id="variable" placeholder="seperate by space">
+							</div>
+						</div>
+					</div>
+					<div class="text-center">
+						<button class="btn btn-warning" type="button">Clear All</button>
+					</div>
+				</div>
+
+				<div class="content" id="remove-candidates">
+					<table id="variable-table"></table>
+				</div>
+
+				<div class="content" id="finish-creation">
+					<div id="answer-div">
+						<p class="text-center" id="answer-info"></p>
+						<h3>Regions:</h3>
+						<p id="region-info"></p>
+						<h3>Constraints:</h3>
+						<p id="constraint-info"></p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
