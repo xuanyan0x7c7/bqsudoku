@@ -48,6 +48,7 @@ function Solver(sudoku, unique) {
 	var columns = -1;
 	this.unique = unique;
 	this.answer = [];
+	this.answers = 0;
 
 	for (var i = 0; i < sudoku.grids; ++i) {
 		this.column_head.push(new Node(-1, ++columns, this.head, null));
@@ -89,6 +90,42 @@ function Solver(sudoku, unique) {
 		for (var cell = 0; cell < sudoku.constraint[c].length; ++cell) {
 			var candidate = sudoku.constraint[c][cell];
 			this.node.push(new Node(candidate, column_index, this.node[candidate], column_head));
+		}
+	}
+
+	for (var cell = 0; cell < sudoku.grids; ++cell) {
+		var number = sudoku.grid[cell];
+		if (number >= 0) {
+			this.remove(cell);
+			for (var r = 0; r < this.sudoku.regions; ++r) {
+				if (sudoku.region[r].binarySearch(cell)) {
+					this.remove(sudoku.grids + r * sudoku.variables + number);
+				}
+			}
+			for (var c = 0; c < this.sudoku.constraints; ++c) {
+				if (sudoku.constraint[c].binarySearch(cell * sudoku.variables + number)) {
+					this.remove(sudoku.grids + sudoku.regions * sudoku.variables + c);
+				}
+			}
+			this.row_choose[cell] = number;
+		}
+	}
+
+	for (var c = 0; c < sudoku.candidate.length; ++c) {
+		if (!sudoku.candidate[c] && sudoku.grid[Math.floor(c / sudoku.variables)] == -1) {
+			var row_head = this.node[c];
+			if (row_head.up.down == row_head) {
+				--this.column_count[row_head.column];
+				row_head.up.down = row_head.down;
+				row_head.down.up = row_head.up;
+			}
+			for (var node = row_head.right; node != row_head; node = node.right) {
+				if (node.up.down == node) {
+					--this.column_count[node.column];
+					node.up.down = node.down;
+					node.down.up = node.up;
+				}
+			}
 		}
 	}
 }
@@ -160,45 +197,13 @@ Solver.prototype.search = function() {
 }
 
 Solver.prototype.solve = function() {
-	for (var c = 0; c < this.sudoku.candidate.length; ++c) {
-		if (!this.sudoku.candidate[c]) {
-			var row_head = this.node[c];
-			row_head.up.down = row_head.down;
-			row_head.down.up = row_head.up;
-			for (var node = row_head.right; node != row_head; node = node.right) {
-				--this.column_count[node.column];
-				node.up.down = node.down;
-				node.down.up = node.up;
-			}
-		}
-	}
-
-	for (var cell = 0; cell < this.sudoku.grids; ++cell) {
-		var number = this.sudoku.grid[cell];
-		if (number >= 0) {
-			this.remove(cell);
-			for (var r = 0; r < this.sudoku.regions; ++r) {
-				if (this.sudoku.region[r].binarySearch(cell)) {
-					this.remove(this.sudoku.grids + r * this.sudoku.variables + number);
-				}
-			}
-			for (var c = 0; c < this.sudoku.constraints; ++c) {
-				if (this.sudoku.constraint[c].binarySearch(cell * this.sudoku.variables + number)) {
-					this.remove(this.sudoku.grids + this.sudoku.regions * this.sudoku.variables + c);
-				}
-			}
-			this.row_choose[cell] = number;
-		}
-	}
-
 	this.search();
-	return this.answer;
+	return {answers: this.answers, answer: this.answer};
 };
 
 Solver.prototype.answerFound = function() {
-	if (this.unique < 2 && this.answer.length >= 1) {
-		this.answer.push([]);
-	} else {
+	++this.answers;
+	if (this.unique == 2 || this.answer.length < 2) {
 		this.answer.push(this.row_choose.concat());
 	}
 };

@@ -78,7 +78,7 @@ Sudoku.prototype.removeCandidate = function(cell, number) {
 };
 
 Sudoku.prototype.addRegion = function(region, sorted) {
-	if (arguments.length == 2 && sorted) {
+	if (sorted) {
 		this.region[this.regions++] = region.concat();
 	} else {
 		this.region[this.regions++] = region.concat().sort(sortNumber);
@@ -102,7 +102,7 @@ Sudoku.prototype.addRegionSatisfies = function(unary_prediction, begin, end) {
 };
 
 Sudoku.prototype.addConstraint = function(constraint, sorted) {
-	if (arguments.length == 2 && sorted) {
+	if (sorted) {
 		this.constraint[this.constraints++] = constraint.concat();
 	} else {
 		this.constraint[this.constraints++] = constraint.concat().sort(sortNumber);
@@ -127,17 +127,27 @@ Sudoku.prototype.addConstraintSatisfies = function(unary_prediction, begin, end)
 
 Sudoku.prototype.addConstraintIf = function(binary_prediction, cell1, cell2) {
 	var n = this.variables;
+	var visit = [];
+	for (var i = 0; i < n; ++i) {
+		visit.push(0);
+	}
 	for (var i = 0; i < n; ++i) {
 		var constraint = [cell1 * n + i];
 		for (var j = 0; j < n; ++j) {
 			if (!binary_prediction(i, j)) {
+				++visit[j];
 				constraint.push(cell2 * n + j);
 			}
 		}
-		if (constraint.length == 1) {
+		if (constraint.length == n + 1) {
 			this.removeCandidate(cell1, i);
-		} else {
+		} else if (constraint.length > 1) {
 			this.addConstraint(constraint);
+		}
+	}
+	for (var i = 0; i < n; ++i) {
+		if (visit[i] == n) {
+			this.removeCandidate(cell2, i);
 		}
 	}
 };

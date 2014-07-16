@@ -59,9 +59,9 @@ $(document).ready(function() {
 		}
 	});
 	$("button#solve").click(function() {solve();});
-	$("button#abort").attr("disabled", "true").click(function() {abort();});
+	$("button#abort").prop("disabled", "true").click(function() {abort();});
 	$(".btn-group#solve-group").hide();
-	$("button#prev-answer").attr("disabled", true).click(function() {previousAnswer();});
+	$("button#prev-answer").prop("disabled", true).click(function() {previousAnswer();});
 	$("button#next-answer").click(function() {nextAnswer();});
 	$(".btn-group#answer-group").hide();
 
@@ -759,11 +759,12 @@ function finish() {
 
 var worker = null;
 var answer = [];
+var answers = 0;
 
 function solve() {
 	if (worker === null) {
-		$("button#solve").attr("disabled", true);
-		$("button#abort").attr("disabled", false);
+		$("button#solve").prop("disabled", true);
+		$("button#abort").prop("disabled", false);
 		worker = "waiting";
 		var sudoku = new Sudoku(variable.length, grid);
 		for (var i = 0; i < rows * columns; ++i) {
@@ -797,11 +798,12 @@ function solve() {
 		worker.postMessage({sudoku: sudoku, unique: 2});
 		worker.onmessage = function(e) {
 			console.timeEnd("time");
-			answer = e.data;
+			answer = e.data.answer;
+			answers = e.data.answers;
 			solveEnd();
 			worker = null;
-			$("button#solve").attr("disabled", false);
-			$("button#abort").attr("disabled", true);
+			$("button#solve").prop("disabled", false);
+			$("button#abort").prop("disabled", true);
 		}
 	}
 }
@@ -809,19 +811,19 @@ function solve() {
 function abort() {
 	worker.terminate();
 	worker = null;
-	$("button#solve").attr("disabled", false);
-	$("button#abort").attr("disabled", true);
+	$("button#solve").prop("disabled", false);
+	$("button#abort").prop("disabled", true);
 }
 
 function solveEnd() {
 	$(".btn-group#solve-group").hide("normal");
 	$(".btn-group#answer-group").show("normal");
-	$("button#next-answer").attr("disabled", answer.length < 2);
-	if (answer.length == 1) {
+	$("button#next-answer").prop("disabled", answers < 2);
+	if (answers == 1) {
 		$("p#answer-info").html("<i class=\"icon-ok\"></i> \
 			The sudoku has an answer, and the answer is unique!");
 	} else {
-		$("p#answer-info").html("The sudoku has " + answer.length + " answers.");
+		$("p#answer-info").html("The sudoku has " + answers + " answers.");
 	}
 	regionPrint($("#region-info"), false);
 	constraintPrint($("#constraint-info"), false);
@@ -842,15 +844,15 @@ function printAnswer(index) {
 function previousAnswer() {
 	if (answer_index > 0) {
 		printAnswer(--answer_index);
-		$("button#prev-answer").attr("disabled", answer_index == 0);
-		$("button#next-answer").attr("disabled", false);
+		$("button#prev-answer").prop("disabled", answer_index == 0);
+		$("button#next-answer").prop("disabled", false);
 	}
 }
 
 function nextAnswer() {
-	if (answer_index < answer.length - 1) {
+	if (answer_index < answers - 1) {
 		printAnswer(++answer_index);
-		$("button#prev-answer").attr("disabled", false);
-		$("button#next-answer").attr("disabled", answer_index == answer.length - 1);
+		$("button#prev-answer").prop("disabled", false);
+		$("button#next-answer").prop("disabled", answer_index == answers - 1);
 	}
 }
